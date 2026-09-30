@@ -22,7 +22,7 @@ Code examples below use Go; map them to the language at hand.
     - If the args belong to one scope and are always handled together, wrap them in a struct or object and pass that.
     - If the args feed separable operations, split the function at those operation boundaries by project conventions.
     - Otherwise keep the arguments as they are. MUST NOT wrap arguments only to reduce their count.
-- For a chain of `if-else` or `switch` branches, dispatch through a map or an interface only when an explicit requirement or an existing extension point shows that cases will keep being added, for example `switch kind { case A: ...; case B: ... }` becomes `handlers[kind].Handle(ctx, req)`; otherwise keep the branches as they are. MUST NOT abstract early just to remove branches.
+- Only when explicit requirements or existing extension points show that cases will keep being added, choose a dispatch table or **Strategy Pattern** according to the behavior; otherwise keep the `if-else` / `switch`. MUST NOT abstract early merely to remove branches.
 
 ## Error Rules
 

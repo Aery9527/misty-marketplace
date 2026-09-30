@@ -21,9 +21,7 @@ description: >-
     - 若這些 args 屬同一個 scope，且實際上總是一起處理，則包裝成一個 struct 或 Object 承載後傳入。
     - 若這些 args 餵給彼此可分離的操作，則依專案規範沿操作邊界拆分 func。
     - 否則保留原參數。嚴禁只為了減少數量而包裝。
-- 連續的 `if-else` 或 `switch` 分支，僅在有明確需求或既有擴充點證明 case 會持續新增時，改為以 map 或介面分派，例如
-  `switch kind { case A: ...; case B: ... }`
-  改為 `handlers[kind].Handle(ctx, req)`；否則保留原分支，嚴禁為了消除分支而提前抽象。
+- 只有明確需求或既有擴充點證明分支會持續新增時，才依行為採用分派表或 **Strategy Pattern**；否則保留 `if-else`／`switch`，嚴禁只為消除分支而提前抽象。
 
 ## 錯誤原則
 
