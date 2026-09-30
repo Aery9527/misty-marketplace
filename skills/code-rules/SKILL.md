@@ -35,6 +35,10 @@ Code examples below use Go; map them to the language at hand.
 - Describe high-level intent, implicit meaning, constraints, and trade-offs, never details the code itself already reveals.
 - When a comment records two or more independent points, MUST format them as a bullet list, not prose.
 - MUST NOT write the historical reason for a change. It no longer represents the current intent of the code and is noise; history belongs only in the commit message.
+- Every struct, function, and field MUST have a concise comment describing its purpose or meaning.
+    - A struct comment MUST state its responsibility and scope. Prefer describing what it does; express excluded responsibilities through workflow or module boundaries.
+    - Field and argument comments MUST explain the data's meaning and include an example when a fixed format applies, e.g. `Phone string // Taiwan mobile number in XXXX-XXX-XXX format, e.g. "0909-878-787"`.
+    - A function comment MUST state its purpose. When call ordering, preconditions, or cross-module contracts are not evident from the code, MUST list those constraints, e.g. "Call Init before Send." MUST NOT enumerate callers or callees merely to repeat the call graph.
 
 ## Logging Rules
 
