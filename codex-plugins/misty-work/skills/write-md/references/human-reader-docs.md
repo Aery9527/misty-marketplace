@@ -11,19 +11,11 @@
 
 ## Required Output Spec
 
-- MUST include `## Quick Navigation` or `## Table of Contents`.
-- Quick Navigation MUST use Markdown links pointing to major sections within the document.
-- Default to listing all major `##` sections; for long or complex documents, extend to important `###` sections.
-- Each major section MUST end with a back-to-top link; default to `[Back to top](#quick-navigation)`.
-- If the document uses `## Table of Contents` instead of `## Quick Navigation`, use `[Back to top](#table-of-contents)`.
-- Each major section MUST be separated from the next section by a standalone `---` horizontal rule.
-- By default, place `---` after the section's back-to-top link and before the next heading.
-- When renaming headings or reordering sections, MUST update Quick Navigation and back-to-top links to avoid dead links or name mismatches.
-
-## Normative Wording in Human Prose
-
-- When a human-reader document written in Traditional Chinese needs strict requirement wording, MUST use `必須`.
-- When a human-reader document written in Traditional Chinese needs strict prohibition wording, MUST use `嚴禁`.
+- MUST include `## Table of Contents`.
+- The table of contents MUST use Markdown links pointing to major sections within the document.
+- Default to listing all major `##` sections; when a section is long or complex, MUST divide it into `###` subsections and link to them.
+- Each major section MUST end with a back-to-top link; default to `[Back to top](#table-of-contents)`. Follow it with a standalone `---` horizontal rule to separate it from the next section.
+- When renaming headings or reordering sections, MUST update the table of contents and back-to-top links to avoid dead links or name mismatches.
 
 ## Diagram Guide
 
@@ -34,7 +26,7 @@
 ```markdown
 # {Feature / Module Name}
 
-## Quick Navigation
+## Table of Contents
 
 - [Overview](#overview)
 - [Architecture](#architecture)
@@ -48,7 +40,7 @@
 - Scope.
 - Key design decisions.
 
-[Back to top](#quick-navigation)
+[Back to top](#table-of-contents)
 
 ---
 
@@ -56,7 +48,7 @@
 
 [Architecture diagram]
 
-[Back to top](#quick-navigation)
+[Back to top](#table-of-contents)
 
 ---
 
@@ -64,7 +56,7 @@
 
 [Flow diagram]
 
-[Back to top](#quick-navigation)
+[Back to top](#table-of-contents)
 
 ---
 
@@ -72,7 +64,7 @@
 
 - {Component}: {Description}.
 
-[Back to top](#quick-navigation)
+[Back to top](#table-of-contents)
 
 ---
 
@@ -82,7 +74,7 @@
 - Design constraints.
 - Unresolved issues.
 
-[Back to top](#quick-navigation)
+[Back to top](#table-of-contents)
 ```
 
 - Omit inapplicable sections; add domain-specific sections as needed.

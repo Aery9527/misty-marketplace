@@ -22,11 +22,6 @@ description: >-
 3. If the target audience cannot be inferred from the user request, file location, filename, or content purpose, MUST ask the user and MUST NOT guess.
 4. After loading the reference, MUST generate or modify the Markdown according to its rules.
 
-## Normative Wording
-
-- In the final output of English documents, strict requirements MUST use `MUST` and strict prohibitions MUST use `MUST NOT`.
-- In the final output of Traditional Chinese documents, strict requirements MUST use `必須` and strict prohibitions MUST use `嚴禁`.
-
 ## Reference Selection
 
 - For human-reader documents (README, user guide, feature doc, architecture overview, API reference, design proposal, team technical doc), load [references/human-reader-docs.md](references/human-reader-docs.md).
@@ -35,8 +30,8 @@ description: >-
 
 ## Universal Rules
 
-- These rules apply regardless of target audience.
-- Explanatory text MUST use lists, even for a single point. MUST NOT use article-style paragraphs.
+- Strict requirements MUST use `MUST` (`必須` in Traditional Chinese); strict prohibitions MUST use `MUST NOT` (`嚴禁` in Traditional Chinese).
+- All explanatory content MUST use lists, even for a single point. MUST NOT use article-style paragraphs.
 - Parallel items MUST use unordered lists; ordered steps or priorities MUST use numbered lists.
 - Independently understandable and actionable points MUST be separate items; a point's conditions, reasons, and exceptions MUST stay in the same item or its direct sub-items.
 - Headings, separators, link-only navigation lines, tables, code and diagram blocks, frontmatter, and verbatim quotations retain their own formats; table and Mermaid usage still follows the audience-specific rules.
@@ -51,7 +46,7 @@ description: >-
 ## Content Selection Rules
 
 - MUST write down stable information that helps the target reader complete a task: usage, prerequisites, inputs, outputs, side effects, limits, and failure behavior.
-- MUST NOT write down one-off correction context, author reminders, or patch notes that only exist to prevent the specific mistake made in the current edit.
+- MUST NOT write down one-off correction context, author reminders, or patch notes that only exist to prevent the specific mistake made in the current edit. This information belongs in commit messages rather than Markdown documents describing current behavior.
 - Before adding a sentence, MUST check whether it describes the system or workflow itself, or merely explains why the writer made this edit. If it only explains the current edit, MUST NOT include it in the document.
 - If removing a sentence would not cause the target reader to lose any actionable understanding, it usually does not belong in the final document.
 

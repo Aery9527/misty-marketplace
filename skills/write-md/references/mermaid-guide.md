@@ -6,13 +6,10 @@
 
 - Human-reader documents MUST use Mermaid to visualize core relationships, flows, states, or data flows.
 - Even for simple content, include at least one brief Mermaid diagram to organize the main structure, flow, or decision relationship.
-- If the document contains multiple diagrams, Quick Navigation should allow readers to jump directly to each diagram's section.
-- Sections containing diagrams MUST still include a back-to-top link; MUST NOT omit it just because a Mermaid diagram is present.
 
 ## Diagram Design
 
 - Mermaid diagrams MUST complement prose; they MUST NOT merely restate paragraph content.
-- MUST NOT draw decorative diagrams unrelated to the document.
 - Each diagram SHOULD focus on one concept; split complex systems into multiple diagrams.
 - Node labels use English; identifiers stay ASCII.
 - Add meaningful labels to flowchart edges to clarify relationship types.
@@ -62,7 +59,7 @@
 
 ```mermaid
 flowchart LR
-    Source["Skill frontmatter"] --> Bundle["Synced package"]
+    Source["Skill frontmatter"] -->|Generates via sync| Bundle["Synced package"]
 
     classDef source stroke:#1f6feb,stroke-width:2px
     classDef derived stroke:#a37000,stroke-width:2px,stroke-dasharray:4 2
@@ -81,22 +78,28 @@ flowchart TD
     Common["game-go-common<br/>Base Utilities"]
     Core["slot-core<br/>Game Engine"]
     Infra["game-go-infra<br/>Infrastructure"]
-    Common --> Core
-    Common --> Infra
-    Core --> App["game-slot-gp-app<br/>Application Layer"]
-    Infra --> App
+    Common -->|Provides utilities| Core
+    Common -->|Provides utilities| Infra
+    Core -->|Provides game logic| App["game-slot-gp-app<br/>Application Layer"]
+    Infra -->|Provides infrastructure| App
 ```
 
 - Left-to-right for pipelines:
 
 ```mermaid
 flowchart LR
-    A["Parse Request"] --> B["Read State"]
-    B --> C["Execute Game Logic"]
-    C --> D["Update Balance"]
-    D --> E["Write Record"]
-    E --> F["Save State"]
-    F --> G["Return Response"]
+    subgraph Preparation["Request preparation"]
+        A["Parse Request"] -->|Parsed request| B["Read State"]
+    end
+    subgraph Execution["Game execution"]
+        C["Execute Game Logic"] -->|Game result| D["Update Balance"]
+    end
+    subgraph Completion["Persistence and response"]
+        E["Write Record"] -->|Record written| F["Save State"]
+        F -->|State saved| G["Return Response"]
+    end
+    B -->|Current state| C
+    D -->|Updated balance| E
 ```
 
 - With subgraph grouping:
@@ -112,7 +115,7 @@ flowchart TD
         Engine["engine"]
         Cf["cf"]
     end
-    Common --> Core
+    Common -->|Provides utilities| Core
 ```
 
 ---
@@ -135,6 +138,7 @@ sequenceDiagram
     activate GameAction
     GameAction-->>SpinEntry: SpinResult
     deactivate GameAction
+    Note over SpinEntry,BalanceUpdater: Update the balance using the game result
     SpinEntry->>BalanceUpdater: UpdateBalance()
     BalanceUpdater-->>SpinEntry: ok
     SpinEntry-->>GinAdapter: FlowResult

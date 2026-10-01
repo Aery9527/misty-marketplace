@@ -6,13 +6,10 @@
 
 - 人類讀者文件必須使用 Mermaid 視覺化核心關係、流程、狀態或資料流。
 - 若內容很單純，也至少用一張簡短 Mermaid 圖整理主要結構、流程或決策關係。
-- 若文件含多張圖，快速導覽應讓讀者能快速跳到各圖所在章節。
-- 圖所在章節在收尾時必須保留回頂 link，且嚴禁因為有 Mermaid 就省略。
 
 ## 圖表設計
 
 - Mermaid 必須補充文字，且嚴禁只重複段落內容。
-- 嚴禁為了湊圖而畫與文件無關的裝飾圖。
 - 每張圖應專注於一個概念；複雜系統拆成多張圖。
 - Node label 使用繁體中文，identifier 維持英文。
 - flowchart 的連線要加有意義的 label 說明關係類型。
@@ -62,7 +59,7 @@
 
 ```mermaid
 flowchart LR
-    Source["技能 frontmatter"] --> Bundle["同步封裝"]
+    Source["技能 frontmatter"] -->|同步產生| Bundle["同步封裝"]
 
     classDef source stroke:#1f6feb,stroke-width:2px
     classDef derived stroke:#a37000,stroke-width:2px,stroke-dasharray:4 2
@@ -81,22 +78,28 @@ flowchart TD
     Common["game-go-common<br/>基礎工具庫"]
     Core["slot-core<br/>遊戲引擎"]
     Infra["game-go-infra<br/>基礎設施"]
-    Common --> Core
-    Common --> Infra
-    Core --> App["game-slot-gp-app<br/>應用層"]
-    Infra --> App
+    Common -->|提供工具| Core
+    Common -->|提供工具| Infra
+    Core -->|提供遊戲邏輯| App["game-slot-gp-app<br/>應用層"]
+    Infra -->|提供基礎設施| App
 ```
 
 - Pipeline 採由左至右：
 
 ```mermaid
 flowchart LR
-    A["解析請求"] --> B["讀取狀態"]
-    B --> C["執行遊戲邏輯"]
-    C --> D["更新餘額"]
-    D --> E["寫入紀錄"]
-    E --> F["保存狀態"]
-    F --> G["回應結果"]
+    subgraph Preparation["請求準備"]
+        A["解析請求"] -->|解析後的請求| B["讀取狀態"]
+    end
+    subgraph Execution["遊戲執行"]
+        C["執行遊戲邏輯"] -->|遊戲結果| D["更新餘額"]
+    end
+    subgraph Completion["持久化與回應"]
+        E["寫入紀錄"] -->|紀錄已寫入| F["保存狀態"]
+        F -->|狀態已保存| G["回應結果"]
+    end
+    B -->|目前狀態| C
+    D -->|更新後的餘額| E
 ```
 
 - 使用 subgraph 分群：
@@ -112,7 +115,7 @@ flowchart TD
         Engine["engine"]
         Cf["cf"]
     end
-    Common --> Core
+    Common -->|提供工具| Core
 ```
 
 ---
@@ -135,6 +138,7 @@ sequenceDiagram
     activate GameAction
     GameAction-->>SpinEntry: SpinResult
     deactivate GameAction
+    Note over SpinEntry,BalanceUpdater: 依遊戲結果更新餘額
     SpinEntry->>BalanceUpdater: UpdateBalance()
     BalanceUpdater-->>SpinEntry: ok
     SpinEntry-->>GinAdapter: FlowResult
