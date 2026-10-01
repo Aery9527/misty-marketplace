@@ -1,276 +1,99 @@
 ---
 name: windows-script
 description: >-
-  Use when writing, modifying, or reviewing any Windows script (.ps1, .bat,
-  .cmd), or when a task involves PowerShell encoding, BOM, line endings,
-  non-ASCII content, or Windows PowerShell 5.1 compatibility. Enforces
-  .ps1-only scripting and PowerShell pitfall rules.
+  Use when writing, modifying, or reviewing Windows scripts (.ps1, .bat, .cmd),
+  or handling PowerShell encoding, BOM, line endings, non-ASCII content, or Windows PowerShell 5.1
+  compatibility. Applies .ps1-only scripting and version-aware PowerShell rules.
 ---
 
-# Windows Script Development Guidelines
+# Windows Script Rules
 
-## ⛔ Ban .bat / .cmd — Always Use .ps1
+- These rules combine PowerShell behavior with this skill's scripting conventions.
+- MUST use `.ps1`; when modifying an existing `.bat` or `.cmd`, rewrite it as `.ps1` and update the affected callers.
+- MUST establish the supported PowerShell versions before editing; examples intended for 5.1 MUST NOT depend on 7+ syntax or parameters.
+- When the target version is unclear, MUST preserve existing compatibility and BOMs; MUST NOT introduce a higher version requirement without evidence that the caller supports it. For new or edited UTF-8 `.ps1` files containing non-ASCII characters, MUST include a BOM, which both 5.1 and 7+ read.
 
-MUST NOT use `.bat` or `.cmd`. Always use `.ps1`. If an existing `.bat` needs changes, rewrite it as `.ps1`; do not patch it.
+## Errors and Exit Codes
 
----
-
-## PowerShell (.ps1) Rules
-
-### 1. Error Handling — Default Is Silent Swallow
-
-PowerShell cmdlets default to `$ErrorActionPreference = 'Continue'`: errors do not throw exceptions and the script keeps running. Any script that needs fail-fast behavior must set this at the top:
+- With the default `Continue` preference, cmdlets report non-terminating errors without stopping. When failure must stop execution, MUST use `$ErrorActionPreference = 'Stop'` or `-ErrorAction Stop`; `try/catch` catches terminating errors.
+- For external programs, MUST capture `$LASTEXITCODE` immediately and interpret it using that program's exit-code contract. Under default settings, a nonzero exit code alone does not trigger `$ErrorActionPreference`; PowerShell versions supporting `$PSNativeCommandUseErrorActionPreference` can opt into that behavior.
+- On 5.1, redirected native stderr can raise `NativeCommandError` under `Stop`, even on success. If overriding the preference to capture stderr, MUST limit the override to that call, restore it, and still check the exit code.
+- `$?` reports the last command's success, including external programs; `$LASTEXITCODE` holds the last native program's or explicitly exiting script's exit code. MUST NOT treat a stale value as the result of a later cmdlet.
+- CLI entrypoints MUST report failure to their caller. With `powershell.exe -File` or `pwsh -File`, termination by an unhandled exception returns `1`, but non-terminating errors or unchecked native failures can still leave the process exit code at `0`.
+- Use `throw` to propagate failure within PowerShell; use `exit <code>` at a CLI entrypoint when an explicit process result is required. MUST NOT append `exit $LASTEXITCODE` indiscriminately; forward a freshly captured code only when that command determines the script's result.
 
 ```powershell
 $ErrorActionPreference = 'Stop'
+git status --short
+$commandExitCode = $LASTEXITCODE
+if ($commandExitCode -ne 0) { throw "git status failed: exit $commandExitCode" }
 ```
 
-Or per-command:
-```powershell
-Get-Item "nonexistent" -ErrorAction Stop
-```
+## Strings, Paths, and Collections
 
-Failures of external programs (`git`, `go`, etc.) do **not** trigger `$ErrorActionPreference`; check manually:
-```powershell
-git merge $source
-if ($LASTEXITCODE -ne 0) { throw "merge failed: exit $LASTEXITCODE" }
-```
-
----
-
-### 2. `$?` vs `$LASTEXITCODE`
-
-- `$?` — applies to PowerShell cmdlets; value is `$true` / `$false`
-- `$LASTEXITCODE` — applies to external executables (.exe / .bat); value is an integer exit code
+- Use single quotes for literal strings and double quotes when variable or escape expansion is needed.
+- MUST quote literal paths containing spaces; MUST invoke an executable path held in a string or variable with `&`.
+- Use `Join-Path` for path composition. For 5.1 compatibility, pass one child path or nest calls; multiple child arguments require PowerShell 6.0+.
+- Use `@()` for an empty collection and `@(command)` when downstream logic needs an array for zero, one, or many results.
 
 ```powershell
-git fetch            # external program
-$LASTEXITCODE        # use this
-
-Get-Item "..."       # cmdlet
-$?                   # use this
+$scriptPath = Join-Path $PSScriptRoot '../scripts/go-mod.ps1'
+& 'C:\Program Files\Git\bin\git.exe' status
+$items = @(Get-ChildItem -LiteralPath $PSScriptRoot -Filter '*.ps1')
 ```
 
----
+## File Encoding and Line Endings
 
-### 3. String Quotes
+- For UTF-8 `.ps1` files that contain non-ASCII characters and must run on Windows PowerShell 5.1, MUST preserve or add a BOM. PowerShell 7+ accepts UTF-8 without BOM, including non-ASCII content.
+- MUST preserve the repository's line-ending convention; BOM and CRLF/LF are independent. If its encoding policy conflicts with these compatibility rules, resolve the conflict explicitly rather than silently stripping the BOM or dropping compatibility.
+- MUST read external text using its actual encoding. For known UTF-8 files, use `Get-Content -LiteralPath $path -Encoding UTF8`; MUST NOT force UTF-8 onto files encoded differently.
+- Without a BOM or explicit encoding, 5.1 `Get-Content` uses the system ANSI code page. Misreading UTF-8 as Big5/GBK can corrupt characters and merge lines; comments can then hide the following setting.
+- MUST choose file output encoding explicitly when compatibility matters and preserve it when appending. In 5.1, `-Encoding UTF8` writes a BOM; in 7+, it does not, so use `utf8BOM` when a BOM is required. 5.1 `Out-File` and `>` default to UTF-16LE.
 
-- **Single quotes** `'...'`: literal — variables are NOT expanded
-- **Double quotes** `"..."`: interpolated — `$var` and escape sequences like `` `n `` are expanded
+## External Program Encoding
+
+- MUST distinguish script-file encoding, text-file encoding, and communication with external programs; changing one does not configure the others.
+- `$OutputEncoding` controls text sent through a pipeline to external programs; `[Console]::OutputEncoding` affects console output and decoding of captured native text output. MUST match the external program's encoding instead of assuming UTF-8 or a locale-specific default.
+- When communicating with a UTF-8 program, use the following settings as needed. MUST restore changed encoding settings in `finally`; console code pages can also be shared across processes.
 
 ```powershell
-$name = "World"
-Write-Host 'Hello $name'   # prints: Hello $name
-Write-Host "Hello $name"   # prints: Hello World
-```
-
-Paths with spaces must be quoted; invoke executables with spaces using `&`:
-```powershell
-& "C:\Program Files\Git\bin\git.exe" status
-```
-
----
-
-### 4. Exit Code Propagation
-
-A PowerShell script exits with code 0 by default, even if internal errors occurred. When the caller (.bat or CI) needs a meaningful exit code:
-
-```powershell
-# at end of script
-exit $LASTEXITCODE
-
-# or explicit
-if ($failed) { exit 1 }
-exit 0
-```
-
----
-
-### 5. Array Boundaries
-
-Declare empty arrays with `@()`, otherwise `$null` causes `.Count` to return null and throws in strict mode:
-
-```powershell
-$items = @()              # safe: $items.Count = 0
-$items = $null            # unsafe: $items.Count is null, errors in strict mode
-```
-
-When a pipeline returns a single element it may be unwrapped into a plain object; force array type with `@()`:
-```powershell
-$result = @(Get-ChildItem "." -Filter "*.go")   # always an array
-```
-
----
-
-### 6. File Encoding / BOM — Do Not Save 5.1-Compatible `.ps1` as UTF-8 Without BOM
-
-`pwsh` 7+ handles UTF-8 without BOM correctly. **This does not mean** `powershell.exe` (Windows PowerShell 5.1) does. If a `.ps1` file contains any non-ASCII characters (localized messages, banners, error strings, comments), 5.1 may misdetect the encoding when the file is **UTF-8 without BOM**, causing parse errors, string truncation, or garbled output.
-
-**Hard rules:**
-
-- If the script must support `powershell.exe` 5.1 **and** the file contains non-ASCII characters, **save as UTF-8 with BOM** by default.
-- Do not let an editor, formatter, normalizer, or a "whole repo is UTF-8 no BOM" convention silently strip the BOM from such `.ps1` files.
-- **BOM and line endings are independent concerns**: needing a BOM does not mean switching to CRLF; line endings still follow the repo's `.gitattributes` / `.editorconfig`.
-- If the repo explicitly defines `charset` / `eol` for `*.ps1`, obey that. When undefined, choose **UTF-8 with BOM** conservatively for any 5.1 compatibility requirement.
-- Unless you can confirm the script targets `pwsh` 7+ only and the entire file is ASCII, do not downgrade to UTF-8 without BOM.
-
-After editing such a file, verify with 5.1 when the environment allows:
-
-```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\script.ps1
-```
-
----
-
-### 7. Reading External UTF-8 Text Files — Always Use `-Encoding UTF8`
-
-`Get-Content` in Windows PowerShell 5.1 defaults to the system OEM encoding (CP950/Big5 on Traditional Chinese machines, GBK on Simplified Chinese machines) even when the target file is UTF-8. Reading config files, rule files, or data files that contain non-ASCII content without specifying encoding causes **silent content corruption**.
-
-#### The Core Danger: Big5/GBK Decoder Consumes Newlines
-
-When the Big5/GBK decoder encounters a UTF-8 multibyte sequence, it may misinterpret a byte as the second half of a double-byte character whose value is `0x0A` (LF), **consuming the newline as part of a character**. Two physical lines are silently merged into one.
-
-```
-# Config file (UTF-8, two separate lines):
-# This comment describes the setting below.
-some-key    some-value
-
-# Get-Content without -Encoding UTF8 decoded as Big5:
-# "# This comment describes the setting below.some-key    some-value"  <- merged into one line!
-```
-
-**Consequence**: the merged line starts with `#` → silently skipped by comment-filter logic (`StartsWith('#')` / `continue`) → the config entry **is never loaded**, the feature or guard becomes a no-op with no error message.
-
-#### Hard Rule: Always Add `-Encoding UTF8` to Every `Get-Content` That Reads External Files
-
-```powershell
-# unsafe: relies on system OEM encoding; non-ASCII UTF-8 files may have lines eaten
-foreach ($line in Get-Content $configFile) { ... }
-
-# safe: explicit UTF-8; byte sequences are decoded correctly, newlines are preserved
-foreach ($line in Get-Content $configFile -Encoding UTF8) { ... }
-```
-
-Applies to any external file the script reads whose content may contain non-ASCII characters (including UTF-8 comments): `.txt`, `.json`, `.yaml`, `.csv`, config files, rule files, and any other text file.
-
-> **Note**: This issue is independent of Rule 6's `.ps1` BOM issue:
-> - Rule 6: The `.ps1` script file itself needs a BOM so 5.1 can **parse the script syntax** correctly.
-> - This rule: When **reading external data files**, you must explicitly specify `-Encoding UTF8` — unrelated to how the script file itself is saved.
-
----
-
-### 8. Non-ASCII / UTF-8 Console Output
-
-Windows PowerShell (5.x) defaults to CP950 (Traditional Chinese) or GBK (Simplified Chinese) for console encoding, which may garble non-ASCII output or truncate `git` output:
-
-```powershell
-[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-$OutputEncoding          = [System.Text.Encoding]::UTF8
-```
-
-PowerShell 7+ defaults to UTF-8; this is typically not needed there.
-
----
-
-### 9. CWD Protection — Do Not Pollute the Caller's Working Directory
-
-A bare `Set-Location` at the top level of a script **permanently changes the caller's (terminal's) working directory**. After the script exits, the CWD is no longer the original location and the user must manually `cd` back.
-
-**Correct approach**: save the original location at the top and restore it in a `try/finally`:
-
-```powershell
-$originalLocation = Get-Location
-Set-Location (Join-Path $PSScriptRoot "..")
+$originalConsoleEncoding = [Console]::OutputEncoding
+$originalOutputEncoding = $OutputEncoding
 try {
-    # ... script body ...
+    $utf8 = [Text.UTF8Encoding]::new($false)
+    [Console]::OutputEncoding = $utf8
+    $OutputEncoding = $utf8
+    # Call the UTF-8 program
 } finally {
-    Set-Location $originalLocation
+    [Console]::OutputEncoding = $originalConsoleEncoding
+    $OutputEncoding = $originalOutputEncoding
 }
 ```
 
-> `exit` inside a `try` block still executes `finally`, so this pattern is safe on all exit paths.
+## Working Directory
 
-**Do not use `Push-Location` / `Pop-Location`**: if the script has inner `Push-Location $sub` calls for submodules and then exits early via `exit`, `return`, or an error, those inner pushes are not popped, and the `Pop-Location` in `finally` pops the inner push instead of the original location — CWD is still polluted. The `$originalLocation` pattern does not rely on the location stack and is correct on any execution path.
-
----
-
-### 10. Colored Output — Required for All Interactive Scripts
-
-**Any script that users run directly in a terminal must use `-ForegroundColor` to make output readable.** Pure background / CI scripts are exempt.
-
-**Color standard (must follow):**
-
-- Main title / Banner — `Cyan` — e.g. `=== Switch Branch ===`
-- Section header — `Blue` — e.g. `--- Summary ---`
-- Success `[OK]` — `Green` — e.g. `[OK] Switched to develop`
-- Error `[X] ERROR` — `Red` — e.g. `[X] ERROR: checkout failed`
-- Warning `[!]` / Cancel — `Yellow` — e.g. `[!] Cancelled`
-- Repo / resource name row — `Cyan` — e.g. `  game-go-common`
-- Menu item number `[1]` — `Green` — e.g. `[1] develop`
-- Menu special option `[e]` — `Cyan` — e.g. `[e] enter branch name`
-- Summary success count — `Green` — e.g. `Success: 6`
-- Summary failure count — `Red` — e.g. `Failed: 1`
+- Prefer explicit paths. If a script changes location in the caller's PowerShell session, MUST save the original location and restore it in `finally`; a separate PowerShell process cannot change its parent's location.
+- Use saved-location restoration rather than relying on a shared location stack. An unmatched nested `Push-Location` can make a later `Pop-Location` restore the wrong entry.
+- `finally` runs on ordinary `return`, `exit`, and terminating-error paths; it cannot guarantee cleanup after forced process termination.
 
 ```powershell
-Write-Host "=== Switch Branch ===" -ForegroundColor Cyan
-Write-Host "  [OK] Switched to $branch" -ForegroundColor Green
-Write-Host "  [X] ERROR: checkout failed" -ForegroundColor Red
-Write-Host "  [!] Cancelled by user" -ForegroundColor Yellow
-Write-Host "--- Summary ---" -ForegroundColor Blue
-Write-Host "Success: $successCount" -ForegroundColor Green
-Write-Host "Failed:  $failCount"  -ForegroundColor Red
-```
-
----
-
-## Script Header Checklist
-
-```powershell
-$ErrorActionPreference = 'Stop'
-[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-$OutputEncoding          = [System.Text.Encoding]::UTF8
-
-# If the script must support powershell.exe 5.1 and the file contains non-ASCII, save as UTF-8 with BOM.
-# CWD protection: use $originalLocation + try/finally; bare Set-Location is forbidden.
 $originalLocation = Get-Location
-Set-Location (Join-Path $PSScriptRoot "..")
 try {
-    # ... script body ...
+    Set-Location -LiteralPath (Join-Path $PSScriptRoot '..') -ErrorAction Stop
+    # Script body
 } finally {
-    Set-Location $originalLocation
+    Set-Location -LiteralPath $originalLocation.Path -ErrorAction Stop
 }
 ```
 
-**Always add `-Encoding UTF8` when reading external text files (see Rule 7):**
+## Interactive Output
 
-```powershell
-# correct: reading a config file that may contain non-ASCII content
-foreach ($line in Get-Content $configFile -Encoding UTF8) { ... }
-$content = Get-Content $dataFile -Raw -Encoding UTF8
-```
+- Interactive terminal scripts MUST use `Write-Host -ForegroundColor` for status messages; background/CI scripts are exempt. MUST retain text labels so color is not the only indication of status.
+- Use `Cyan` for main titles, resource names, and special menu options; `Blue` for section headings.
+- Use `Green` for `[OK]`, successful counts, and numbered menu choices; `Red` for `[X] ERROR` and failure counts; `Yellow` for `[!]` warnings and cancellation.
 
-### Path Separators
+## Verification
 
-Use `Join-Path` or `/` (both work in PowerShell); always quote paths that contain spaces.
-
-```powershell
-$path = Join-Path $PSScriptRoot ".." "scripts" "go-mod.ps1"
-& "C:\Program Files\Git\bin\git.exe" status
-```
-
-## Common Pitfalls
-
-1. **"`pwsh` runs fine, so `powershell.exe` must be fine too."**  
-   Wrong. `pwsh` 7+ is much more forgiving about UTF-8 without BOM; 5.1 is not.
-
-2. **"I already set console `OutputEncoding` to UTF-8, so file encoding doesn't matter."**  
-   Wrong. Console output encoding and the storage encoding of the `.ps1` file itself are separate concerns.
-
-3. **"If I need a BOM I should also switch to CRLF."**  
-   Wrong. BOM and line endings are unrelated; line endings still follow repo rules.
-
-4. **"It's just a one-line comment or Chinese string change — it won't affect script execution."**  
-   Wrong. The moment a file changes from all-ASCII to containing non-ASCII, the 5.1 risk applies.
-
-5. **"`Get-Content` reading a UTF-8 config file doesn't need encoding specified — all the meaningful fields look like ASCII anyway."**  
-   Wrong. **Chinese comments in the file** are sufficient to cause the Big5/GBK decoder to consume a newline (`0x0A`), merging the comment line with the next config line, which is then silently skipped by comment-filter logic so the config entry never takes effect. Always add `-Encoding UTF8`.
+- MUST check parsing and relevant behavior on the oldest supported PowerShell version, including failure exit codes and non-ASCII data when affected. Use isolated fixtures for side effects; a parse check alone does not verify execution.
+- If a required runtime is unavailable, MUST state which version and behavior remain unverified; a successful 7+ run is not evidence of 5.1 compatibility.
+- Official references: [character encoding](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_character_encoding), [automatic variables](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_automatic_variables), [preference variables](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_preference_variables), and [Join-Path](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/join-path).
