@@ -8,12 +8,16 @@ description: >-
 
 # Write MD
 
-撰寫與編輯 Markdown 文件。此主檔只保留通用規則與讀者分流；細節必須在判斷目標讀者後才讀取。
+- 撰寫與編輯 Markdown 文件。
+- 此主檔只保留通用規則與讀者分流；細節必須在判斷目標讀者後才讀取。
 
 ## 分流原則
 
-1. 先判斷 Markdown 是給**人類讀者**看的，還是給 **AI agent** 使用的。AI agent 文件是指任何會被載入 agent context window 以控制其行為的檔案，例如 `SKILL.md`、`AGENTS.md`、`CLAUDE.md`、`GEMINI.md`、`CODEX.md`、system prompt 與 workflow rule。人類讀者文件是供人閱讀的內容，例如 README、使用指南、設計提案、API 說明。
-2. 若能判斷，**必須先從對應 reference 開始**。若同一任務明確需要同時維護人類讀者文件與 AI agent 文件，之後可以依需求再載入另一套 reference，但必須把兩套規則分開，且各自只套用到對應的產出。
+1. 先判斷 Markdown 是給**人類讀者**看的，還是給 **AI agent** 使用的。
+    - AI agent 文件是指任何會被載入 agent context window 以控制其行為的檔案，例如 `SKILL.md`、`AGENTS.md`、`CLAUDE.md`、`GEMINI.md`、`CODEX.md`、system prompt 與 workflow rule。
+    - 人類讀者文件是供人閱讀的內容，例如 README、使用指南、設計提案、API 說明。
+2. 若能判斷，**必須先從對應 reference 開始**。
+    - 若同一任務明確需要同時維護人類讀者文件與 AI agent 文件，之後可以依需求再載入另一套 reference，但必須把兩套規則分開，且各自只套用到對應的產出。
 3. 若無法從使用者需求、檔案位置、檔名或內容用途判斷目標讀者，必須先詢問使用者，且嚴禁自行猜測。
 4. 讀取 reference 後，必須依該 reference 的規則生成或修改 Markdown。
 
@@ -24,17 +28,19 @@ description: >-
 
 ## Reference 選擇
 
-人類讀者文件（README、使用者指南、功能文件、架構總覽、API 說明、設計提案、團隊技術文件），讀取 [references/human-reader-docs_zhTW.md](references/human-reader-docs_zhTW.md)。
-
-AI agent 文件（`SKILL.md`、agent instructions、system prompt、workflow rule、coding rule、eval spec、tool usage guideline），讀取 [references/ai-agent-docs_zhTW.md](references/ai-agent-docs_zhTW.md)。
-
-人類讀者文件若需要 Mermaid 語法細節或圖表類型範例，再額外讀取 [references/diagram-examples_zhTW.md](references/diagram-examples_zhTW.md)。AI agent 文件嚴禁讀取 Mermaid 範例，避免載入不必要 context。
+- 人類讀者文件（README、使用者指南、功能文件、架構總覽、API 說明、設計提案、團隊技術文件），讀取 [references/human-reader-docs_zhTW.md](references/human-reader-docs_zhTW.md)。
+- AI agent 文件（`SKILL.md`、agent instructions、system prompt、workflow rule、coding rule、eval spec、tool usage guideline），讀取 [references/ai-agent-docs_zhTW.md](references/ai-agent-docs_zhTW.md)。
+- 任務包含人類讀者文件，或使用者明確要求在 AI agent 文件中使用 Mermaid 圖表或語法時，必須讀取 [Mermaid 指南](references/mermaid-guide_zhTW.md)；否則嚴禁讀取。
 
 ## 共通守則
 
-以下規則不分目標讀者，一律適用。
-
-- 任何指向檔案、目錄、標題錨點或外部資源的參照必須使用 Markdown link，且嚴禁使用裸路徑或裸 URL。link text 必須清楚說明目標名稱，讓讀者不點開也能知道連到哪裡。
+- 以下規則不分目標讀者，一律適用。
+- 說明文字必須使用清單，即使只有一個重點；嚴禁文章式段落。
+- 並列事項必須使用無序清單；操作順序或優先序必須使用編號清單。
+- 可獨立理解與執行的事項必須分項；同一事項的條件、原因與例外必須留在同項或其直接子項。
+- 標題、分隔線、僅含連結的導覽行、表格、程式碼與圖表區塊、frontmatter 及逐字引用保留原格式；表格與 Mermaid 的使用仍遵循讀者分流規則。
+- 任何指向檔案、目錄、標題錨點或外部資源的參照必須使用 Markdown link，且嚴禁使用裸路徑或裸 URL。
+- link text 必須清楚說明目標名稱，讓讀者不點開也能知道連到哪裡。
 
 ## 通用語言規範
 
@@ -55,7 +61,7 @@ AI agent 文件（`SKILL.md`、agent instructions、system prompt、workflow rul
 - `description`、`summary`、`title` 等長句欄位，預設優先使用 `>-` block scalar；若內容很短，也可以直接用單引號或雙引號包住整段字串。
 - 這條規則尤其適用於 `SKILL.md` 的 `description` 欄位，因為常會同時包含觸發詞、例句與帶冒號的片段。
 
-安全寫法：
+- 安全寫法：
 
 ```yaml
 name: skills-governance
