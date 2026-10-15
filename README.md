@@ -15,54 +15,8 @@ Current version: [v2.0.0](release-note/v2.0.0.md)
 
 ## 開始使用
 
-- marketplace 名稱是 `misty-plugins`；以下以 `misty-work` 為例，安裝其他 bundle 時替換名稱。
-- 在本 repo 根目錄測試時，可把 `Aery9527/misty-marketplace` 換成 `.`。
-- 官方說明：[Claude Code plugin marketplaces](https://code.claude.com/docs/en/discover-plugins)、
-  [Copilot CLI plugins](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/plugins-finding-installing)、
-  [Codex plugins](https://developers.openai.com/codex/plugins)。
-
-Claude Code：
-
-```text
-/plugin marketplace add Aery9527/misty-marketplace
-/plugin install misty-work@misty-plugins
-/reload-plugins
-
-# 更新
-/plugin marketplace update misty-plugins
-
-# 移除 marketplace，同時移除從它安裝的 plugins
-/plugin marketplace remove misty-plugins
-```
-
-GitHub Copilot CLI：
-
-```sh
-copilot plugin marketplace add Aery9527/misty-marketplace
-copilot plugin install misty-work@misty-plugins
-
-# 更新
-copilot plugin update --all
-
-# 移除
-copilot plugin uninstall misty-work
-copilot plugin marketplace remove misty-plugins
-```
-
-Codex：
-
-```sh
-codex plugin marketplace add Aery9527/misty-marketplace
-
-# 進入 codex 後用 /plugins 安裝或停用 plugin
-codex
-
-# 更新
-codex plugin marketplace upgrade misty-plugins
-
-# 移除
-codex plugin marketplace remove misty-plugins
-```
+- 直接把 repo 網址 [misty-marketplace](https://github.com/Aery9527/misty-marketplace) 加到各 agent 的 marketplace 即可安裝使用。
+- 加入後瀏覽 `misty-plugins` 並選擇要安裝的 plugin bundle。
 
 [Back to top](#table-of-contents)
 
