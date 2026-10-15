@@ -1,3 +1,1 @@
-# CLAUDE
-
-- Follow [LORE.md](LORE.md).
+@LORE.md
