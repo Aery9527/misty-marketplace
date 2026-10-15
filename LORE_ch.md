@@ -1,6 +1,6 @@
 # LORE
 
-- 這個 repo 是 AI Agent Skills marketplace：維護可重複使用的 skills，並以 Plugin Bundle 發布到 Claude Code、GitHub Copilot CLI 與 Codex。
+- 這個 repo 是 AI Agent Skills marketplace：維護可重複使用的 skills，並以 Plugin Bundle 發布到 Claude Code 與 Codex。
 - 讀取每個 `skills/*/SKILL.md` 的 YAML frontmatter（`name`、`description`）來探索 skills；`SKILL.md` 是英文入口，同目錄的 `*_ch.md` 是其繁體中文版本。
 
 ## 目錄索引
@@ -17,7 +17,7 @@
 ## Bundle 目錄
 
 - 每個 bundle 只在一份目錄中宣告，依「哪些 host 能安裝它」選擇：
-    - 所有 host 都能用的 bundle 宣告在 [.claude-plugin/marketplace.json](.claude-plugin/marketplace.json)；Claude Code 與 Copilot CLI 讀取它，Codex 也從同一筆條目封裝。
+    - 所有 host 都能用的 bundle 宣告在 [.claude-plugin/marketplace.json](.claude-plugin/marketplace.json)；Claude Code 讀取它，Codex 也從同一筆條目封裝。
     - 只有 Codex 能用的 bundle 宣告在 [.agents/plugins/codex-only-bundles.json](.agents/plugins/codex-only-bundles.json)，例如其 skills 用來驅動另一個 agent CLI。
     - 同一個 bundle 同時出現在兩份目錄時，同步腳本會拒絕執行。
 - 新增、刪除、重新命名 skill，或把 skill 移到另一個 bundle 時，先更新其所屬目錄。

@@ -1,6 +1,6 @@
 # LORE
 
-- This repository is an AI Agent Skills marketplace: it maintains reusable skills and publishes them as Plugin Bundles to Claude Code, GitHub Copilot CLI, and Codex.
+- This repository is an AI Agent Skills marketplace: it maintains reusable skills and publishes them as Plugin Bundles to Claude Code and Codex.
 - Discover skills by reading the YAML frontmatter (`name`, `description`) of each `skills/*/SKILL.md`; `SKILL.md` is the English entry, and a `*_ch.md` beside it is its Traditional Chinese counterpart.
 
 ## Directory Index
@@ -17,7 +17,7 @@
 ## Bundle Catalogs
 
 - Declare each bundle in exactly one catalog, chosen by which hosts can install it:
-    - [.claude-plugin/marketplace.json](.claude-plugin/marketplace.json) for a bundle every host can use; Claude Code and Copilot CLI read it, and Codex packages from the same entry.
+    - [.claude-plugin/marketplace.json](.claude-plugin/marketplace.json) for a bundle every host can use; Claude Code reads it, and Codex packages from the same entry.
     - [.agents/plugins/codex-only-bundles.json](.agents/plugins/codex-only-bundles.json) for a bundle only Codex can use, e.g. one whose skills drive another agent CLI.
     - The sync script rejects a bundle declared in both catalogs.
 - When a skill is added, removed, renamed, or moved to another bundle, update the owning catalog first.

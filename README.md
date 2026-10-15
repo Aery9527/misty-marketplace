@@ -34,7 +34,7 @@ Current version: [v2.0.0](release-note/v2.0.0.md)
 ```mermaid
 flowchart LR
     accTitle: Packaging flow
-    accDescr: Claude Code and Copilot CLI install from the shared catalog; Codex installs from a package generated out of all hand-maintained sources.
+    accDescr: Claude Code installs from the shared catalog; Codex installs from a package generated out of all hand-maintained sources.
     subgraph Sources["Hand-maintained sources"]
         Skills["skills/"]
         Shared[".claude-plugin/marketplace.json"]
@@ -42,7 +42,7 @@ flowchart LR
     end
     Sync["sync-codex-plugins"]
     CodexPkg["Generated Codex package<br/>.agents/plugins/marketplace.json<br/>codex-plugins/"]
-    Claude["Claude Code<br/>Copilot CLI"]
+    Claude["Claude Code"]
     Codex["Codex"]
     Shared -->|Installed directly| Claude
     Sources -->|Input| Sync
@@ -60,11 +60,11 @@ flowchart LR
 
 - Bundle 是依情境組合的一組 skills；每個 bundle 包含哪些 skills，以宣告它的 catalog 為準。
 
-| Bundle         | 宣告位置                                                                           | 可安裝的 host                       |
-|----------------|------------------------------------------------------------------------------------|-------------------------------------|
-| `misty-work`   | [.claude-plugin/marketplace.json](.claude-plugin/marketplace.json)                 | Claude Code、GitHub Copilot CLI、Codex |
-| `misty-dev`    | [.claude-plugin/marketplace.json](.claude-plugin/marketplace.json)                 | Claude Code、GitHub Copilot CLI、Codex |
-| `misty-claude` | [.agents/plugins/codex-only-bundles.json](.agents/plugins/codex-only-bundles.json) | Codex                               |
+| Bundle         | 宣告位置                                                                           | 可安裝的 host     |
+|----------------|------------------------------------------------------------------------------------|-------------------|
+| `misty-work`   | [.claude-plugin/marketplace.json](.claude-plugin/marketplace.json)                 | Claude Code、Codex |
+| `misty-dev`    | [.claude-plugin/marketplace.json](.claude-plugin/marketplace.json)                 | Claude Code、Codex |
+| `misty-claude` | [.agents/plugins/codex-only-bundles.json](.agents/plugins/codex-only-bundles.json) | Codex             |
 
 [Back to top](#table-of-contents)
 
