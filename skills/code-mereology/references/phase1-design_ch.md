@@ -1,6 +1,6 @@
 # Phase 1 — 模組化設計
 
-`bd-*.md` 與 `sd-*.md` 兩層的概念定義，見 [文件模型](../SKILL_zhTW.md)。
+`bd-*.md` 與 `sd-*.md` 兩層的概念定義，見 [文件模型](../SKILL_ch.md)。
 
 ## 目的
 

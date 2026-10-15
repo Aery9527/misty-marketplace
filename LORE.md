@@ -1,7 +1,7 @@
 # LORE
 
 - This repository is an AI Agent Skills marketplace: it maintains reusable skills and publishes them as Plugin Bundles to Claude Code, GitHub Copilot CLI, and Codex.
-- Discover skills by reading the YAML frontmatter (`name`, `description`) of each `skills/*/SKILL.md`; `SKILL.md` is the English entry, and a `*_zhTW.md` beside it is its Traditional Chinese counterpart.
+- Discover skills by reading the YAML frontmatter (`name`, `description`) of each `skills/*/SKILL.md`; `SKILL.md` is the English entry, and a `*_ch.md` beside it is its Traditional Chinese counterpart.
 
 ## Directory Index
 
@@ -34,10 +34,10 @@
 
 ## Notes
 
-- Keep AI-agent documents bilingual and equivalent: the file without a suffix is English, and the same basename plus `_zhTW` is Traditional Chinese, e.g. `SKILL.md`=`SKILL_zhTW.md`, `LORE.md`=`LORE_zhTW.md`.
+- Keep AI-agent documents bilingual and equivalent: the file without a suffix is English, and the same basename plus `_ch` is Traditional Chinese, e.g. `SKILL.md`=`SKILL_ch.md`, `LORE.md`=`LORE_ch.md`.
     - This applies to `SKILL.md`, Markdown under `references/`, and root instruction documents.
     - Update both languages in the same change.
-    - Traditional Chinese files link to `_zhTW` targets when such targets exist.
+    - Traditional Chinese files link to `_ch` targets when such targets exist.
 - Treat [README.md](README.md) as a human-reader document in Traditional Chinese only; keep it project-level and MUST NOT list the skills it contains, because the list drifts from the frontmatter.
 - A document written only for a skill's maintainers MUST live under `docs/<skill-name>/`, not inside the skill directory.
 - Inside `SKILL.md` or `references/`, MUST NOT use a relative Markdown link to another skill, because installed skills are not guaranteed to sit side by side; name it in inline code instead, e.g. `write-md`.

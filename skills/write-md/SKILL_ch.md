@@ -23,9 +23,9 @@ description: >-
 
 ## Reference 選擇
 
-- 人類讀者文件（README、使用者指南、功能文件、架構總覽、API 說明、設計提案、團隊技術文件），讀取 [references/human-reader-docs_zhTW.md](references/human-reader-docs_zhTW.md)。
-- AI agent 文件（`SKILL.md`、agent instructions、system prompt、workflow rule、coding rule、eval spec、tool usage guideline），讀取 [references/ai-agent-docs_zhTW.md](references/ai-agent-docs_zhTW.md)。
-- 任務包含人類讀者文件，或使用者明確要求在 AI agent 文件中使用 Mermaid 圖表或語法時，必須讀取 [Mermaid 指南](references/mermaid-guide_zhTW.md)；否則嚴禁讀取。
+- 人類讀者文件（README、使用者指南、功能文件、架構總覽、API 說明、設計提案、團隊技術文件），讀取 [references/human-reader-docs_ch.md](references/human-reader-docs_ch.md)。
+- AI agent 文件（`SKILL.md`、agent instructions、system prompt、workflow rule、coding rule、eval spec、tool usage guideline），讀取 [references/ai-agent-docs_ch.md](references/ai-agent-docs_ch.md)。
+- 任務包含人類讀者文件，或使用者明確要求在 AI agent 文件中使用 Mermaid 圖表或語法時，必須讀取 [Mermaid 指南](references/mermaid-guide_ch.md)；否則嚴禁讀取。
 
 ## 共通守則
 

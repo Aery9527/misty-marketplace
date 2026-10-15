@@ -71,11 +71,11 @@ codex plugin marketplace remove misty-plugins
 ## 專案概覽
 
 - [skills](skills) 是所有 skill 的原始內容；每個 skill 的名稱、用途與觸發時機寫在各自 `SKILL.md` 的 frontmatter。
-- `SKILL.md` 是英文主檔，同目錄的 `*_zhTW.md` 是繁體中文版本。
+- `SKILL.md` 是英文主檔，同目錄的 `*_ch.md` 是繁體中文版本。
 - [.claude-plugin/marketplace.json](.claude-plugin/marketplace.json) 宣告所有 host 都能安裝的 bundle，也保存整個 repo 共用的版本號。
 - [.agents/plugins/codex-only-bundles.json](.agents/plugins/codex-only-bundles.json) 宣告只有 Codex 能安裝的 bundle。
 - [.agents/plugins/marketplace.json](.agents/plugins/marketplace.json) 與 [codex-plugins](codex-plugins) 是同步腳本產生的 Codex 封裝，只含英文主檔。
-- 給 AI agent 的工作規則看 [LORE_zhTW.md](LORE_zhTW.md)。
+- 給 AI agent 的工作規則看 [LORE_ch.md](LORE_ch.md)。
 
 ```mermaid
 flowchart LR

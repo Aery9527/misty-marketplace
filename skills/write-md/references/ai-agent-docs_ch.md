@@ -12,7 +12,7 @@
 ## 必要輸出規格
 
 - 嚴禁使用 Markdown table；改用條列清單或編號步驟。
-- 除非使用者明確要求在 AI agent 文件中使用 Mermaid 圖表或語法，否則嚴禁使用 Mermaid。有明確要求時，必須讀取 [Mermaid 指南](mermaid-guide_zhTW.md)。
+- 除非使用者明確要求在 AI agent 文件中使用 Mermaid 圖表或語法，否則嚴禁使用 Mermaid。有明確要求時，必須讀取 [Mermaid 指南](mermaid-guide_ch.md)。
 - 指引必須直接、無歧異；繁體中文 AI agent 文件優先使用 `必須` / `應` / `嚴禁` / 先後順序等明確語氣。
 - 避免長篇例子；只保留必要的短例子、反例或判斷句。
 

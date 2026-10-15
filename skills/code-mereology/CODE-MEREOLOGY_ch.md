@@ -136,12 +136,12 @@ monorepo 採用同一模型的巢狀結構：repository 根目錄一個 `docs/` 
 
 ## 規則放在哪裡
 
-本檔案是概覽。agent 實際遵循的規則在 [SKILL_zhTW.md](SKILL_zhTW.md) 以及它路由過去的各階段 reference：
+本檔案是概覽。agent 實際遵循的規則在 [SKILL_ch.md](SKILL_ch.md) 以及它路由過去的各階段 reference：
 
-- [Phase 1 — 模組化設計](references/phase1-design_zhTW.md)
-- [Phase 2 — SBE 落成失敗測試](references/phase2-sbe_zhTW.md)
-- [Phase 3 — 實作](references/phase3-tdd_zhTW.md)
-- [Phase 4 — 效能驗證](references/phase4-benchmark_zhTW.md)
+- [Phase 1 — 模組化設計](references/phase1-design_ch.md)
+- [Phase 2 — SBE 落成失敗測試](references/phase2-sbe_ch.md)
+- [Phase 3 — 實作](references/phase3-tdd_ch.md)
+- [Phase 4 — 效能驗證](references/phase4-benchmark_ch.md)
 
 另有三支腳本支援這套流程：[count_lines.py](scripts/count_lines.py) 負責行數上限，[list_planned.py](scripts/list_planned.py) 負責列出目標尚未存在的連結，[list_plans.py](scripts/list_plans.py) 負責列出 repository 中仍存在的延後 plan。
 

@@ -1,7 +1,7 @@
 # LORE
 
 - 這個 repo 是 AI Agent Skills marketplace：維護可重複使用的 skills，並以 Plugin Bundle 發布到 Claude Code、GitHub Copilot CLI 與 Codex。
-- 讀取每個 `skills/*/SKILL.md` 的 YAML frontmatter（`name`、`description`）來探索 skills；`SKILL.md` 是英文入口，同目錄的 `*_zhTW.md` 是其繁體中文版本。
+- 讀取每個 `skills/*/SKILL.md` 的 YAML frontmatter（`name`、`description`）來探索 skills；`SKILL.md` 是英文入口，同目錄的 `*_ch.md` 是其繁體中文版本。
 
 ## 目錄索引
 
@@ -34,10 +34,10 @@
 
 ## 注意事項
 
-- AI agent 文件必須維持雙語且內容等價：無後綴的檔案是英文版，同 basename 加 `_zhTW` 是繁體中文版，例如 `SKILL.md`=`SKILL_zhTW.md`、`LORE.md`=`LORE_zhTW.md`。
+- AI agent 文件必須維持雙語且內容等價：無後綴的檔案是英文版，同 basename 加 `_ch` 是繁體中文版，例如 `SKILL.md`=`SKILL_ch.md`、`LORE.md`=`LORE_ch.md`。
     - 適用於 `SKILL.md`、`references/` 底下的 Markdown，以及根目錄的 instruction 文件。
     - 兩個語系必須在同一次變更中同步更新。
-    - 繁體中文檔案在目標存在 `_zhTW` 版本時，連結指向 `_zhTW` 版本。
+    - 繁體中文檔案在目標存在 `_ch` 版本時，連結指向 `_ch` 版本。
 - [README.md](README.md) 是只用繁體中文撰寫的人類讀者文件；只寫專案層級內容，嚴禁列出包含的 skills，因為清單會與 frontmatter 漂移。
 - 只寫給 skill 維護者看的文件必須放在 `docs/<skill-name>/`，不放在 skill 目錄內。
 - 在 `SKILL.md` 或 `references/` 內，嚴禁用相對 Markdown link 指向另一個 skill，因為安裝後的 skills 不保證相鄰；改用 inline code 寫出名稱，例如 `write-md`。
@@ -45,4 +45,4 @@
 ## 閱讀指引
 
 - [scripts/README.md](scripts/README.md)：執行或修改同步、驗證、link 腳本時。
-- [docs/claude/UPSTREAM-PARITY_zhTW.md](docs/claude/UPSTREAM-PARITY_zhTW.md)：修改 `skills/claude/codex-plugin/` 底下任何內容前；並在同一次變更中更新它。
+- [docs/claude/UPSTREAM-PARITY_ch.md](docs/claude/UPSTREAM-PARITY_ch.md)：修改 `skills/claude/codex-plugin/` 底下任何內容前；並在同一次變更中更新它。

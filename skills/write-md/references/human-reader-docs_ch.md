@@ -19,7 +19,7 @@
 
 ## 圖表指南
 
-- 必須讀取 [Mermaid 指南](mermaid-guide_zhTW.md)，依其中的人類文件要求與共用規則製作圖表。
+- 必須讀取 [Mermaid 指南](mermaid-guide_ch.md)，依其中的人類文件要求與共用規則製作圖表。
 
 ## 典型結構
 

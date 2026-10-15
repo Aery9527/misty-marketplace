@@ -101,12 +101,12 @@ flowchart TD
 3. 把宣告的 skill 目錄複製到各自的 [`codex-plugins/<plugin>/skills`](../codex-plugins/)。
 4. 用 [`.claude-plugin/marketplace.json`](../.claude-plugin/marketplace.json) 的 `metadata.version` 回寫每個
    [`codex-plugins/<plugin>/.codex-plugin/plugin.json`](../codex-plugins/) 的 `version`。
-5. 從同步後的 package tree 中刪除所有 [`*_zhTW.md`](../skills/)，讓 Codex package 只保
+5. 從同步後的 package tree 中刪除所有 [`*_ch.md`](../skills/)，讓 Codex package 只保
    留英文主檔。
 6. 重寫 [`.agents/plugins/marketplace.json`](../.agents/plugins/marketplace.json)，使其指向
    [`./codex-plugins/<plugin>`](../codex-plugins/)。
 7. 執行 [`verify_codex_plugins.py`](verify_codex_plugins.py)，確認 [`codex-plugins/*/skills`](../codex-plugins/) 與 source
-   [`skills/`](../skills/) 完全一致，唯一允許的差異是移除 [`*_zhTW.md`](../skills/)。
+   [`skills/`](../skills/) 完全一致，唯一允許的差異是移除 [`*_ch.md`](../skills/)。
 
 ### 前置條件
 
@@ -149,7 +149,7 @@ flowchart TD
 - 每個 [`codex-plugins/<plugin>/skills/<skill>`](../codex-plugins/) 都存在
 - 相對於 source [`skills/`](../skills/)，target 不可多檔、不可少檔、不可多目錄、不可少目錄
 - 所有對應檔案內容必須 byte-for-byte 完全一致
-- 唯一允許的差異是 source [`skills/`](../skills/) 端的 [`*_zhTW.md`](../skills/) 不納入比對
+- 唯一允許的差異是 source [`skills/`](../skills/) 端的 [`*_ch.md`](../skills/) 不納入比對
 
 ### 用法
 

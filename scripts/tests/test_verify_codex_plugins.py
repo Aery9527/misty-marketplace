@@ -12,7 +12,7 @@ from verify_codex_plugins import verify_repo  # type: ignore
 
 
 class VerifyCodexPluginsTests(unittest.TestCase):
-    def test_passes_when_target_matches_source_without_zh_tw_files(self) -> None:
+    def test_passes_when_target_matches_source_without_ch_files(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             repo = pathlib.Path(tmp_dir)
             self._write_marketplace(
@@ -26,7 +26,7 @@ class VerifyCodexPluginsTests(unittest.TestCase):
                 ],
             )
             self._write_text(repo / "skills" / "alpha" / "SKILL.md", "# alpha\n")
-            self._write_text(repo / "skills" / "alpha" / "SKILL_zhTW.md", "# zh\n")
+            self._write_text(repo / "skills" / "alpha" / "SKILL_ch.md", "# zh\n")
             self._write_text(repo / "skills" / "alpha" / "references" / "guide.md", "guide\n")
             self._write_text(
                 repo / "codex-plugins" / "demo" / "skills" / "alpha" / "SKILL.md",
@@ -203,12 +203,12 @@ class VerifyCodexPluginsTests(unittest.TestCase):
 
         self.assertTrue(any("Unexpected plugin root entry" in error for error in errors))
 
-    def test_overlay_zh_tw_file_is_not_expected_at_plugin_root(self) -> None:
+    def test_overlay_ch_file_is_not_expected_at_plugin_root(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             repo = pathlib.Path(tmp_dir)
             self._write_overlay_fixture(repo)
             self._write_text(
-                repo / "skills" / "alpha" / "codex-plugin" / "NOTICE_zhTW.md", "# zh\n"
+                repo / "skills" / "alpha" / "codex-plugin" / "NOTICE_ch.md", "# zh\n"
             )
             self._write_text(repo / "codex-plugins" / "demo" / "hooks.json", "{}\n")
             self._write_text(
