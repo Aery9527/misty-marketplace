@@ -21,6 +21,7 @@
     - [.agents/plugins/codex-only-bundles.json](.agents/plugins/codex-only-bundles.json) for a bundle only Codex can use, e.g. one whose skills drive another agent CLI.
     - The sync script rejects a bundle declared in both catalogs.
 - When a skill is added, removed, renamed, or moved to another bundle, update the owning catalog first.
+- When a bundle is added, removed, or renamed, or the hosts that can install it change, update the Plugin Bundle table in [README.md](README.md).
 
 ## Codex Package Sync
 
@@ -40,7 +41,7 @@
     - Traditional Chinese files link to `_ch` targets when such targets exist.
 - Treat [README.md](README.md) as a human-reader document in Traditional Chinese only; keep it project-level and MUST NOT list the skills it contains, because the list drifts from the frontmatter.
 - A document written only for a skill's maintainers MUST live under `docs/<skill-name>/`, not inside the skill directory.
-- Inside `SKILL.md` or `references/`, MUST NOT use a relative Markdown link to another skill, because installed skills are not guaranteed to sit side by side; name it in inline code instead, e.g. `write-md`.
+- Inside a skill directory, relative Markdown links MUST stay within that skill directory, because only that directory ships with the skill; name another skill in inline code instead, e.g. `write-md`.
 
 ## Reading Guide
 

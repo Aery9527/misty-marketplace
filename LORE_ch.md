@@ -21,6 +21,7 @@
     - 只有 Codex 能用的 bundle 宣告在 [.agents/plugins/codex-only-bundles.json](.agents/plugins/codex-only-bundles.json)，例如其 skills 用來驅動另一個 agent CLI。
     - 同一個 bundle 同時出現在兩份目錄時，同步腳本會拒絕執行。
 - 新增、刪除、重新命名 skill，或把 skill 移到另一個 bundle 時，先更新其所屬目錄。
+- 新增、刪除、重新命名 bundle，或可安裝它的 host 改變時，更新 [README.md](README.md) 的 Plugin Bundle 表。
 
 ## Codex 封裝同步
 
@@ -40,7 +41,7 @@
     - 繁體中文檔案在目標存在 `_ch` 版本時，連結指向 `_ch` 版本。
 - [README.md](README.md) 是只用繁體中文撰寫的人類讀者文件；只寫專案層級內容，嚴禁列出包含的 skills，因為清單會與 frontmatter 漂移。
 - 只寫給 skill 維護者看的文件必須放在 `docs/<skill-name>/`，不放在 skill 目錄內。
-- 在 `SKILL.md` 或 `references/` 內，嚴禁用相對 Markdown link 指向另一個 skill，因為安裝後的 skills 不保證相鄰；改用 inline code 寫出名稱，例如 `write-md`。
+- skill 目錄內的相對 Markdown link 必須只指向該 skill 目錄內的內容，因為只有該目錄會隨 skill 一起發布；提到其他 skill 時改用 inline code 寫出名稱，例如 `write-md`。
 
 ## 閱讀指引
 
