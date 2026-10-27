@@ -29,7 +29,14 @@ Current version: [v2.0.0](release-note/v2.0.0.md)
 - [.claude-plugin/marketplace.json](.claude-plugin/marketplace.json) 宣告所有 host 都能安裝的 bundle，也保存整個 repo 共用的版本號。
 - [.agents/plugins/codex-only-bundles.json](.agents/plugins/codex-only-bundles.json) 宣告只有 Codex 能安裝的 bundle。
 - [.agents/plugins/marketplace.json](.agents/plugins/marketplace.json) 與 [codex-plugins](codex-plugins) 是同步腳本產生的 Codex 封裝，只含英文主檔。
-- 給 AI agent 的工作規則看 [LORE_ch.md](LORE_ch.md)。
+- AI agent 的工作規則看 [LORE_ch.md](LORE_ch.md)（英文版 [LORE.md](LORE.md)）。
+- 文件結構：
+    - [LORE.md](LORE.md)：所有 AI agent 共用的規則與閱讀入口。
+    - [AGENTS.md](AGENTS.md)：agent 通用入口，只負責轉介到 LORE；Codex 另外讀 CODEX。
+    - [CLAUDE.md](CLAUDE.md)：Claude Code 入口，匯入 LORE 並放 Claude 專屬規則。
+    - [CODEX.md](CODEX.md)：Codex 專屬規則。
+    - `*_ch.md`：同名英文檔的等價繁體中文版本。
+    - [.agents/skills](.agents/skills)：專案 skill 的唯一位置；`.claude/skills` 是指向它的本機 link。
 
 ```mermaid
 flowchart LR
@@ -78,8 +85,8 @@ flowchart LR
 .\scripts\sync-codex-plugins.ps1
 ```
 
-- 腳本會讀寫哪些檔案、前置條件與失敗行為，看 [scripts/README.md](scripts/README.md)。
+- 腳本會讀寫哪些檔案、前置條件與失敗行為，看 [scripts/SCRIPTS.md](scripts/SCRIPTS.md)。
 - 嚴禁直接編輯 [codex-plugins](codex-plugins) 底下的 skill 副本；下次同步會覆蓋。
-- 提交用 `commit` skill，發版用 `release` skill，兩者都在 [.claude/skills](.claude/skills)。
+- 提交用 `commit` skill，發版用 `release` skill，兩者都在 [.agents/skills](.agents/skills)。
 
 [Back to top](#table-of-contents)
