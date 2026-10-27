@@ -1,9 +1,9 @@
 ---
 name: project-lore
 description: >-
-  建立新 repo 的根目錄文件，或重整既有專案的 agent 指令檔（`CLAUDE.md`、`AGENTS.md`、
-  `CODEX.md`、`LORE.md`、`GEMINI.md`、`.cursorrules`）與 `README.md`，
-  或把專案 skill 搬到 `.agents/skills` 時使用。不用於修改單一規則或單一 README 章節。
+  建立或整理 repo 根目錄的 agent 指令檔（`CLAUDE.md`、`AGENTS.md`、
+  `CODEX.md`、`LORE.md`、`GEMINI.md`）與 `README.md`，
+  或處理專案 skill 位置時使用。不用於修改單一規則或單一 README 章節。
 ---
 
 # Project LORE
@@ -142,7 +142,7 @@ description: >-
 
 1. 載入 `write-md`。
 2. 盤點 repo：
-    - 任何深度的 agent 檔：`CLAUDE.md`、`AGENTS.md`、`AGENTS.override.md`、`CODEX.md`、`LORE.md`、`GEMINI.md`、`.cursorrules`、`.cursor/rules/`、`.github/copilot-instructions.md`；
+    - 任何深度的 agent 檔：`CLAUDE.md`、`AGENTS.md`、`AGENTS.override.md`、`CODEX.md`、`LORE.md`、`GEMINI.md`、`.github/copilot-instructions.md`；
     - 所有 `README.md`、`.claude/skills`、`.agents/skills`；
     - 建置與執行入口：`Makefile`、`package.json`、`go.mod`、`pyproject.toml` 等。
     - 找不到專案名稱、用途或啟動方式時，必須詢問使用者並等到回答後才寫任何檔案；嚴禁自行編造。
@@ -154,7 +154,7 @@ description: >-
     - 暫時性內容，例如進度或「接下來完成 X」-> 若有合適的既有追蹤文件，逐字附加且不重整該文件；否則拿給使用者看並詢問。嚴禁默默刪除；
     - 重複或過時 -> 只有確定時才刪除，並列入報告。
     - 保留每條規則的意義、條件與強度：原文已是要求或禁止的寫成 `MUST` / `MUST NOT`；一般指示維持一般指示。嚴禁加強或減弱規則。
-4. 其他 host 入口檔（`GEMINI.md`、`.cursorrules`、`AGENTS.override.md` 等）除非使用者要求，否則不動；在報告中逐一列出並說明其載入影響，例如根目錄有非空的 `AGENTS.override.md` 時，Codex 會略過 `AGENTS.md`。
+4. 其他 host 入口檔（`GEMINI.md`、`AGENTS.override.md` 等）除非使用者要求，否則不動；在報告中逐一列出並說明其載入影響，例如根目錄有非空的 `AGENTS.override.md` 時，Codex 會略過 `AGENTS.md`。
 5. Skill：
     1. 若 `.agents/skills` 是指向實體目錄 `.claude/skills` 的反向 link，只移除該 link 與其 `.gitignore` 項目；內容留在 `.claude/skills`。若它指向其他位置，保留並詢問使用者。
     2. 若 `.claude/skills` 是實體目錄，把內容搬到 `.agents/skills/`；同名 skill 在兩個實體目錄都有時，詢問使用者。

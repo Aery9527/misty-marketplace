@@ -1,10 +1,9 @@
 ---
 name: project-lore
 description: >-
-  Use when creating the root documents of a new repository, or restructuring an
-  existing project's agent instruction files (`CLAUDE.md`, `AGENTS.md`, `CODEX.md`,
-  `LORE.md`, `GEMINI.md`, `.cursorrules`) and `README.md`, or when moving project
-  skills into `.agents/skills`. Not for routine edits to one rule or one README section.
+  Use when creating or organizing a repository's root agent instruction files
+  (`CLAUDE.md`, `AGENTS.md`, `CODEX.md`, `LORE.md`, `GEMINI.md`) and `README.md`,
+  or when handling the location of project skills. Not for routine edits to one rule or one README section.
 ---
 
 # Project LORE
@@ -143,7 +142,7 @@ description: >-
 
 1. Load `write-md`.
 2. Inventory the repository:
-    - agent files at any depth: `CLAUDE.md`, `AGENTS.md`, `AGENTS.override.md`, `CODEX.md`, `LORE.md`, `GEMINI.md`, `.cursorrules`, `.cursor/rules/`, `.github/copilot-instructions.md`;
+    - agent files at any depth: `CLAUDE.md`, `AGENTS.md`, `AGENTS.override.md`, `CODEX.md`, `LORE.md`, `GEMINI.md`, `.github/copilot-instructions.md`;
     - every `README.md`, `.claude/skills`, `.agents/skills`;
     - build and run entry points: `Makefile`, `package.json`, `go.mod`, `pyproject.toml`, and similar.
     - If the project name, purpose, or how to start cannot be found, MUST ask the user and wait for the answer before writing any file; MUST NOT invent them.
@@ -155,7 +154,7 @@ description: >-
     - transient, e.g. progress or "next, finish X" -> append verbatim to an existing tracking document if one fits, without restructuring it; otherwise show it to the user and ask. MUST NOT delete it silently;
     - duplicate or obsolete -> delete only when certain, and report it.
     - Keep each rule's meaning, condition, and strength: wording that already requires or forbids becomes `MUST` / `MUST NOT`; a plain instruction stays plain. MUST NOT strengthen or weaken a rule.
-4. Leave other host entry files (`GEMINI.md`, `.cursorrules`, `AGENTS.override.md`, and similar) untouched unless the user asks; report each with its loading effect, e.g. a non-empty root `AGENTS.override.md` makes Codex skip `AGENTS.md`.
+4. Leave other host entry files (`GEMINI.md`, `AGENTS.override.md`, and similar) untouched unless the user asks; report each with its loading effect, e.g. a non-empty root `AGENTS.override.md` makes Codex skip `AGENTS.md`.
 5. Skills:
     1. If `.agents/skills` is a reverse link to the real directory `.claude/skills`, remove only the link and its `.gitignore` entry; the content stays in `.claude/skills`. If it links anywhere else, keep it and ask the user.
     2. If `.claude/skills` is a real directory, move its contents into `.agents/skills/`; if a skill name exists in both real directories, ask the user.
