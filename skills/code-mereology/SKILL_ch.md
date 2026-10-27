@@ -18,11 +18,11 @@ description: >-
 
 - 若任務只要求記下或檢視延後的 plan，不進入任何 phase。依照[延後變更計畫](#延後變更計畫)執行，且嚴禁載入 phase reference。
 - 若使用者選擇執行某一筆延後變更條目，只把那筆條目視為 feature request，再依下方規則選擇 phase。該條目嚴禁跳過設計或測試的確認 gate。
-- 若任務是建立或修改設計文件，或是把功能拆分成模組，載入 [Phase 1 — 模組化設計](references/phase1-design_zhTW.md)。
-- 若已有經確認的 leaf 設計文件，且任務是定義具體 input/output 範例、挖掘 edge case，或把它們落成失敗的測試，載入 [Phase 2 — SBE 落成失敗測試](references/phase2-sbe_zhTW.md)。
-- 若已有一組經確認的失敗測試，且任務是對著它做實作，載入 [Phase 3 — 實作](references/phase3-tdd_zhTW.md)。
-- 若功能已實作完成，且任務是量測吞吐、延遲或資源消耗，載入 [Phase 4 — 效能驗證](references/phase4-benchmark_zhTW.md)。
-- 其餘情況代表這是一項還沒有既有產出可接續的功能或模組變更，載入 [Phase 1 — 模組化設計](references/phase1-design_zhTW.md)。必須先比對上面四條；這一條只接住四條都沒接住的任務。
+- 若任務是建立或修改設計文件，或是把功能拆分成模組，載入 [Phase 1 — 模組化設計](references/phase1-design_ch.md)。
+- 若已有經確認的 leaf 設計文件，且任務是定義具體 input/output 範例、挖掘 edge case，或把它們落成失敗的測試，載入 [Phase 2 — SBE 落成失敗測試](references/phase2-sbe_ch.md)。
+- 若已有一組經確認的失敗測試，且任務是對著它做實作，載入 [Phase 3 — 實作](references/phase3-tdd_ch.md)。
+- 若功能已實作完成，且任務是量測吞吐、延遲或資源消耗，載入 [Phase 4 — 效能驗證](references/phase4-benchmark_ch.md)。
+- 其餘情況代表這是一項還沒有既有產出可接續的功能或模組變更，載入 [Phase 1 — 模組化設計](references/phase1-design_ch.md)。必須先比對上面四條；這一條只接住四條都沒接住的任務。
 - 四個階段各自可獨立載入，必須依當前任務只載入需要的階段，嚴禁載入當前任務不需要的階段 reference。
 - 以上五條 phase 規則是唯一的 phase reference 載入判斷依據，且必須依序比對。每份 reference 都寫明自己的產出物；依賴前一階段產出的那幾個階段，另外寫明動手之前必須驗證的狀態，因此任一階段都能在冷載入的情況下獨立執行。
 

@@ -152,7 +152,7 @@ flowchart LR
 overlay 之所以存在，是因為 Codex plugin 把 `scripts/`、`commands/`、`agents/` 與
 `hooks.json` 放在 *plugin root*，而不是放在某個 skill 內；但本 repository 要求所有原始
 檔案都住在 `skills/` 底下。`scripts/sync-codex-plugins.ps1` 會把 overlay 的內容複製到
-plugin root，並把 overlay 從 skill 複本中排除，方式與排除 `*_zhTW.md` 相同。
+plugin root，並把 overlay 從 skill 複本中排除，方式與排除 `*_ch.md` 相同。
 
 [回到頂端](#快速導覽)
 

@@ -40,7 +40,7 @@
 5. 確認每個 `codex-plugins/*/.codex-plugin/plugin.json` 的 `version` 已同步
 6. 確認 `codex-plugins/*/skills` 與 source `skills` 完全一致：不得有額外檔案、
    缺漏檔案、額外目錄、缺漏目錄，且所有對應檔案內容必須完全相同；唯一允許
-   的差異是移除 `*_zhTW.md`
+   的差異是移除 `*_ch.md`
 
 ## release-note 清理
 

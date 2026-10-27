@@ -170,7 +170,7 @@ The overlay exists because a Codex plugin keeps `scripts/`, `commands/`,
 repository requires every source file to live under `skills/`.
 `scripts/sync-codex-plugins.ps1` copies the overlay's contents onto the plugin
 root and excludes the overlay from the skill copy, the same way it excludes
-`*_zhTW.md`.
+`*_ch.md`.
 
 [Back to top](#quick-navigation)
 

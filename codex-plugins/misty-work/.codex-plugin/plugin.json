@@ -1,7 +1,7 @@
 {
   "name": "misty-work",
-  "version": "2.0.0",
-  "description": "Everyday writing and scripting skills packaged for Codex.",
+  "version": "2.1.0",
+  "description": "Everyday writing, project document structure, and scripting skills packaged for Codex.",
   "author": {
     "name": "Aery Lin"
   },
@@ -10,14 +10,15 @@
   "keywords": [
     "markdown",
     "documentation",
+    "project-structure",
     "powershell",
     "windows"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Misty Work",
-    "shortDescription": "Markdown writing and Windows scripting workflows.",
-    "longDescription": "Packages the Misty work bundle for Codex, including Markdown writing rules for human and AI-agent documents, and Windows PowerShell and batch scripting guidance.",
+    "shortDescription": "Markdown writing, project document structure, and Windows scripting workflows.",
+    "longDescription": "Packages the Misty work bundle for Codex, including Markdown writing rules for human and AI-agent documents, a LORE-based root document structure for repositories, and Windows PowerShell and batch scripting guidance.",
     "developerName": "Aery Lin",
     "category": "Productivity"
   }

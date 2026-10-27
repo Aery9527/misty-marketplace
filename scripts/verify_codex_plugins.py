@@ -24,7 +24,7 @@ RESERVED_PLUGIN_ROOT_ENTRIES = frozenset({".codex-plugin", "skills"})
 def collect_entries(
     root: pathlib.Path,
     *,
-    exclude_zh_tw: bool,
+    exclude_ch: bool,
     exclude_top_level: str | None = None,
 ) -> tuple[set[pathlib.Path], set[pathlib.Path]]:
     directories: set[pathlib.Path] = set()
@@ -35,7 +35,7 @@ def collect_entries(
             continue
         if path.is_dir():
             directories.add(relative_path)
-        elif not (exclude_zh_tw and path.name.endswith("_zhTW.md")):
+        elif not (exclude_ch and path.name.endswith("_ch.md")):
             files.add(relative_path)
     return directories, files
 
@@ -49,9 +49,9 @@ def compare_trees(
 ) -> list[str]:
     errors: list[str] = []
     expected_directories, expected_files = collect_entries(
-        source_root, exclude_zh_tw=True, exclude_top_level=exclude_top_level
+        source_root, exclude_ch=True, exclude_top_level=exclude_top_level
     )
-    actual_directories, actual_files = collect_entries(target_root, exclude_zh_tw=False)
+    actual_directories, actual_files = collect_entries(target_root, exclude_ch=False)
 
     for relative_path in sorted(expected_directories - actual_directories):
         errors.append(
@@ -94,7 +94,7 @@ def verify_overlay(
     errors: list[str] = []
     owned_names: set[str] = set()
     for source_entry in sorted(overlay_root.iterdir()):
-        if source_entry.is_file() and source_entry.name.endswith("_zhTW.md"):
+        if source_entry.is_file() and source_entry.name.endswith("_ch.md"):
             continue
 
         owned_names.add(source_entry.name)

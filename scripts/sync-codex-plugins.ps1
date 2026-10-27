@@ -212,7 +212,7 @@ try {
                 }
 
                 foreach ($overlayEntry in @(Get-ChildItem $overlaySource -Force)) {
-                    if ($overlayEntry.Name -like '*_zhTW.md') {
+                    if ($overlayEntry.Name -like '*_ch.md') {
                         continue
                     }
                     if ($seenOverlayEntries.ContainsKey($overlayEntry.Name)) {
@@ -305,9 +305,9 @@ try {
                 $sourceSkillPath = [string]$skillPlan['source']
                 $destinationSkillPath = Join-Path $tempSkillsRoot $skillName
                 Copy-Item $sourceSkillPath -Destination $destinationSkillPath -Recurse -Force
-                $zhTwFiles = @(Get-ChildItem $destinationSkillPath -Recurse -File -Filter '*_zhTW.md')
-                foreach ($zhTwFile in $zhTwFiles) {
-                    Remove-Item $zhTwFile.FullName -Force
+                $chFiles = @(Get-ChildItem $destinationSkillPath -Recurse -File -Filter '*_ch.md')
+                foreach ($chFile in $chFiles) {
+                    Remove-Item $chFile.FullName -Force
                 }
                 $stagedOverlay = Join-Path $destinationSkillPath $OverlayDirName
                 if (Test-Path $stagedOverlay) {
@@ -333,7 +333,7 @@ try {
                 }
 
                 foreach ($overlayEntry in @(Get-ChildItem $overlaySource -Force)) {
-                    if ($overlayEntry.Name -like '*_zhTW.md') {
+                    if ($overlayEntry.Name -like '*_ch.md') {
                         continue
                     }
 
@@ -348,10 +348,10 @@ try {
                 Write-Host "  [OK] Applied plugin-root overlay from $($skillPlan['name'])" -ForegroundColor Green
             }
 
-            $overlayZhTwFiles = @(Get-ChildItem $codexPluginRoot -Recurse -File -Filter '*_zhTW.md' |
+            $overlayChFiles = @(Get-ChildItem $codexPluginRoot -Recurse -File -Filter '*_ch.md' |
                 Where-Object { $_.FullName -notlike (Join-Path $targetSkillsRoot '*') })
-            foreach ($overlayZhTwFile in $overlayZhTwFiles) {
-                Remove-Item $overlayZhTwFile.FullName -Force
+            foreach ($overlayChFile in $overlayChFiles) {
+                Remove-Item $overlayChFile.FullName -Force
             }
 
             foreach ($rootEntry in @(Get-ChildItem $codexPluginRoot -Force)) {
