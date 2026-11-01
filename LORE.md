@@ -45,7 +45,7 @@
 - Rules shared by every agent live in [LORE.md](LORE.md); host entry files hold only routing or rules for that host alone.
 - `LORE`, `AGENTS`, `CLAUDE`, and `CODEX` MUST each have an English file without suffix and an equivalent Traditional Chinese file with the `_ch` suffix; MUST update both in the same change. Any other agent document MAY add a `_ch` counterpart, and the pair MUST then stay equivalent. A `_ch` file links to `_ch` targets when they exist.
 - Agent documents hold only stable rules; MUST NOT write task progress, temporary state, or ongoing migrations into them.
-- [README.md](README.md) is a Traditional Chinese human-reader document and the only `README.md` in the repository; an overview document in another directory is named after that directory in uppercase, e.g. `tools/TOOLS.md`.
+- [README.md](README.md) is a Traditional Chinese human-reader document.
 - Project skills live in `.agents/skills/<skill-name>/`; MUST NOT create skill files directly under `.claude/skills`, which is a local link to `.agents/skills`.
 
 ## Reading Guide

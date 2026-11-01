@@ -56,10 +56,8 @@ description: >-
 ```markdown
 @LORE.md
 
-- If `.claude/skills` is missing or does not resolve to `.agents/skills`, MUST recreate it as a link before creating or using a skill; run at the repository root:
-    - Windows PowerShell: `$l = Get-Item .claude/skills -Force -ErrorAction SilentlyContinue; if ($l.LinkType -or ($l -is [System.IO.DirectoryInfo] -and -not $l.GetFileSystemInfos())) { $l.Delete() }; New-Item -ItemType Directory -Force .claude, .agents/skills | Out-Null; New-Item -ItemType Junction -Path .claude/skills -Target (Resolve-Path .agents/skills)`
-    - macOS/Linux: `{ [ -L .claude/skills ] && rm .claude/skills; [ ! -e .claude/skills ] || rmdir .claude/skills; } && mkdir -p .claude .agents/skills && ln -s ../.agents/skills .claude/skills`
-    - If the link was created during the current session, MUST ask the user to run `/reload-skills` before using the skills in it.
+- If `.claude/skills` is missing or does not resolve to `.agents/skills`, MUST create or repair the local link before creating or using a skill, preserving existing skill contents; choose the link type and commands for the current operating system and shell.
+    - If the link was created or repaired during the current session, MUST ask the user to reload skills using the current environment's supported mechanism before using the skills in it.
 ```
 
 - `CLAUDE_ch.md`：
@@ -67,10 +65,8 @@ description: >-
 ```markdown
 @LORE_ch.md
 
-- 若 `.claude/skills` 不存在或未指向 `.agents/skills`，建立或使用 skill 前必須在 repo 根目錄重新建立 link：
-    - Windows PowerShell：`$l = Get-Item .claude/skills -Force -ErrorAction SilentlyContinue; if ($l.LinkType -or ($l -is [System.IO.DirectoryInfo] -and -not $l.GetFileSystemInfos())) { $l.Delete() }; New-Item -ItemType Directory -Force .claude, .agents/skills | Out-Null; New-Item -ItemType Junction -Path .claude/skills -Target (Resolve-Path .agents/skills)`
-    - macOS/Linux：`{ [ -L .claude/skills ] && rm .claude/skills; [ ! -e .claude/skills ] || rmdir .claude/skills; } && mkdir -p .claude .agents/skills && ln -s ../.agents/skills .claude/skills`
-    - 若 link 是在目前 session 中建立，使用其中的 skill 前必須請使用者執行 `/reload-skills`。
+- 若 `.claude/skills` 不存在或未指向 `.agents/skills`，建立或使用 skill 前必須建立或修復本機 link，並保留既有 skill 內容；依目前作業系統與 shell 自行選擇連結類型及指令。
+    - 若 link 是在目前 session 中建立或修復，使用其中的 skill 前必須請使用者依目前環境支援的方式重新載入 skill。
 ```
 
 - 沒有 Codex 專屬規則時，`CODEX.md` 與 `CODEX_ch.md` 只含 `# CODEX.md`。
@@ -94,7 +90,7 @@ description: >-
 - Rules shared by every agent live in [LORE.md](LORE.md); host entry files hold only routing or rules for that host alone.
 - `LORE`, `AGENTS`, `CLAUDE`, and `CODEX` MUST each have an English file without suffix and an equivalent Traditional Chinese file with the `_ch` suffix; MUST update both in the same change. Any other agent document MAY add a `_ch` counterpart, and the pair MUST then stay equivalent. A `_ch` file links to `_ch` targets when they exist.
 - Agent documents hold only stable rules; MUST NOT write task progress, temporary state, or ongoing migrations into them.
-- [README.md](README.md) is a Traditional Chinese human-reader document and the only `README.md` in the repository; an overview document in another directory is named after that directory in uppercase, e.g. `tools/TOOLS.md`.
+- [README.md](README.md) is a Traditional Chinese human-reader document.
 - Project skills live in `.agents/skills/<skill-name>/`; MUST NOT create skill files directly under `.claude/skills`, which is a local link to `.agents/skills`.
 - A subdirectory agent file such as `web/AGENTS.md` governs only its directory; MUST read it before working there.
 ```
@@ -105,7 +101,7 @@ description: >-
 - 所有 agent 共用的規則放在 [LORE_ch.md](LORE_ch.md)；host 入口檔只放轉介或僅適用該 host 的規則。
 - `LORE`、`AGENTS`、`CLAUDE`、`CODEX` 必須各有無後綴的英文檔與加 `_ch` 後綴的等價繁體中文檔；兩者必須在同一次變更中更新。其他 agent 文件可以加 `_ch` 對應檔，加了之後兩者必須維持等價。`_ch` 檔在對應目標存在時連到 `_ch` 目標。
 - agent 文件只放穩定規則；嚴禁寫入任務進度、暫時狀態或進行中的遷移。
-- [README.md](README.md) 是繁體中文的人類讀者文件，也是 repo 內唯一的 `README.md`；其他目錄的概覽文件以該目錄名稱大寫命名，例如 `tools/TOOLS.md`。
+- [README.md](README.md) 是繁體中文的人類讀者文件。
 - 專案 skill 放在 `.agents/skills/<skill-name>/`；嚴禁直接在 `.claude/skills` 建立 skill 檔案，它是指向 `.agents/skills` 的本機 link。
 - 子目錄 agent 檔（例如 `web/AGENTS.md`）只管轄該目錄；在該目錄工作前必須先讀它。
 ```
@@ -140,10 +136,12 @@ description: >-
 
 ## 流程
 
+- 已追蹤的檔案用 `git mv` 搬移；未追蹤的檔案用一般搬移，並維持未追蹤。
+
 1. 載入 `write-md`。
 2. 盤點 repo：
     - 任何深度的 agent 檔：`CLAUDE.md`、`AGENTS.md`、`AGENTS.override.md`、`CODEX.md`、`LORE.md`、`GEMINI.md`、`.github/copilot-instructions.md`；
-    - 所有 `README.md`、`.claude/skills`、`.agents/skills`；
+    - 根目錄的 `README.md`、`.claude/skills`、`.agents/skills`；
     - 建置與執行入口：`Makefile`、`package.json`、`go.mod`、`pyproject.toml` 等。
     - 找不到專案名稱、用途或啟動方式時，必須詢問使用者並等到回答後才寫任何檔案；嚴禁自行編造。
 3. 把既有內容拆成單一項目，再依適用範圍（全 repo 或子目錄）、host（共用或 host 專屬）、穩定性（穩定或暫時）分類：
@@ -159,11 +157,9 @@ description: >-
     1. 若 `.agents/skills` 是指向實體目錄 `.claude/skills` 的反向 link，只移除該 link 與其 `.gitignore` 項目；內容留在 `.claude/skills`。若它指向其他位置，保留並詢問使用者。
     2. 若 `.claude/skills` 是實體目錄，把內容搬到 `.agents/skills/`；同名 skill 在兩個實體目錄都有時，詢問使用者。
     3. 把 `.claude/skills` 加入 `.gitignore`；若 git 追蹤 `.claude/skills`，執行 `git rm --cached -r .claude/skills`。
-    4. `.agents/skills` 存在時，執行 `CLAUDE.md` 的 link 指令；它也會移除搬移後留下的空目錄。
-6. 把所有非根目錄的 `README.md` 改名為 `<DIR>.md` 並更新引用；不改寫其內容。若新名稱撞名，或有工具依賴原名稱（例如套件 manifest），回報衝突並保留原檔。
-- 已追蹤的檔案用 `git mv` 搬移；未追蹤的檔案用一般搬移，並維持未追蹤。
-7. 先寫英文 agent 檔，再寫其 `_ch` 對應檔，最後寫 `README.md`。
-8. 驗收，然後回報。
+    4. `.agents/skills` 存在時，依目前環境選擇指令，將 `.claude/skills` 建立或修復為指向它的本機 link；保留既有 skill 內容。
+6. 先寫英文 agent 檔，再寫其 `_ch` 對應檔，最後寫 `README.md`。
+7. 驗收，然後回報。
 
 ## 驗收
 
@@ -172,7 +168,7 @@ description: >-
 3. 每對英文/`_ch` 檔的內容與規範強度等價。
 4. `README.md` 符合 README 契約。
 5. `git check-ignore .claude/skills` 成功，且 `git ls-files .claude/skills` 沒有輸出；`.agents/skills` 存在時，`.claude/skills` 解析到它。
-6. 再次對照本 skill 檢查結果，沒有剩下要搬移、改名或改寫的項目。
+6. 再次對照本 skill 檢查結果，沒有剩下要搬移或改寫的項目。
 - 回報新增、修改、搬移、刪除的檔案；每個原有項目的去處；待問問題；以及任何未解決的衝突。仍有未解決衝突時，嚴禁宣稱完成。
 
 ## 常見錯誤
@@ -181,5 +177,4 @@ description: >-
 - 寫成 `- Follow @LORE.md`（能匯入但與範本不同），或 `CLAUDE_ch.md` 缺少 `@LORE_ch.md` -> 逐字使用範本。
 - 在 `_ch` 檔加上「譯本；以英文版為準」之類的標頭 -> 兩檔等價，不加標頭。
 - `CODEX.md` 轉介到 LORE -> `CODEX.md` 只放 Codex 專屬規則。
-- Junction 的 `-Target` 用相對路徑 -> PowerShell 7 會拒絕；範本使用 `(Resolve-Path .agents/skills)`。
 - 等待使用者回答期間先寫出部分結構 -> 先問，回答後再寫。

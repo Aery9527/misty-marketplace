@@ -45,7 +45,7 @@
 - 所有 agent 共用的規則放在 [LORE_ch.md](LORE_ch.md)；host 入口檔只放轉介或僅適用該 host 的規則。
 - `LORE`、`AGENTS`、`CLAUDE`、`CODEX` 必須各有無後綴的英文檔與加 `_ch` 後綴的等價繁體中文檔；兩者必須在同一次變更中更新。其他 agent 文件可以加 `_ch` 對應檔，加了之後兩者必須維持等價。`_ch` 檔在對應目標存在時連到 `_ch` 目標。
 - agent 文件只放穩定規則；嚴禁寫入任務進度、暫時狀態或進行中的遷移。
-- [README.md](README.md) 是繁體中文的人類讀者文件，也是 repo 內唯一的 `README.md`；其他目錄的概覽文件以該目錄名稱大寫命名，例如 `tools/TOOLS.md`。
+- [README.md](README.md) 是繁體中文的人類讀者文件。
 - 專案 skill 放在 `.agents/skills/<skill-name>/`；嚴禁直接在 `.claude/skills` 建立 skill 檔案，它是指向 `.agents/skills` 的本機 link。
 
 ## 閱讀指引

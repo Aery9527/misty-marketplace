@@ -1,9 +1,9 @@
 ---
 name: windows-script
 description: >-
-  Use when writing, modifying, or reviewing Windows scripts (.ps1, .bat, .cmd),
-  or handling PowerShell encoding, BOM, line endings, non-ASCII content, or Windows PowerShell 5.1
-  compatibility. Applies .ps1-only scripting and version-aware PowerShell rules.
+  Use only when the task requires writing, modifying, debugging, or reviewing
+  PowerShell or Windows batch script code (e.g. .ps1, .bat, .cmd). Merely working
+  on Windows or using PowerShell to run commands or existing scripts is not a trigger.
 ---
 
 # Windows Script Rules
