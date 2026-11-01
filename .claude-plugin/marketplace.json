@@ -25,7 +25,9 @@
       "skills": [
         "./arch-rules",
         "./code-rules",
-        "./code-mereology"
+        "./code-mereology",
+        "./misty-commit",
+        "./misty-release"
       ]
     }
   ]
