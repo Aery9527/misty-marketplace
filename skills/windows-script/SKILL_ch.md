@@ -1,9 +1,9 @@
 ---
 name: windows-script
 description: >-
-  撰寫、修改或審查 Windows 腳本（.ps1、.bat、.cmd），或處理 PowerShell 編碼、BOM、非 ASCII 內容、
-  換行及 Windows PowerShell 5.1 相容性時使用。套用僅使用 .ps1 的慣例與依版本區分的
-  PowerShell 規則。
+  僅在任務需要撰寫、修改、除錯或審查 PowerShell 或 Windows batch 腳本程式碼
+  （如 .ps1、.bat、.cmd）時使用。單純操作 Windows，或透過 PowerShell 執行指令或既有腳本，
+  都不構成觸發條件。
 ---
 
 # Windows Script 守則
