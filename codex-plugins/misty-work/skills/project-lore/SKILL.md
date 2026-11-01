@@ -58,8 +58,6 @@ description: >-
 
 - If `.claude/skills` is missing or does not resolve to `.agents/skills`, MUST create or repair the local link before creating or using a skill, preserving existing skill contents; choose the link type and commands for the current operating system and shell.
     - If the link was created or repaired during the current session, MUST ask the user to reload skills using the current environment's supported mechanism before using the skills in it.
-- When Claude needs to remember information, MUST NOT write it to user-level memory storage under the local user's home directory; MUST follow the project's memory conventions and store it inside the repository in files tracked by Git.
-    - If the project has no memory conventions, MUST propose a concrete repository location and recording and reading methods, then ask whether the user accepts it and wait for approval. After approval, MUST record the agreed location and methods as equivalent stable rules in `CLAUDE.md` and `CLAUDE_ch.md` before writing the memory.
 ```
 
 - `CLAUDE_ch.md`:
@@ -69,8 +67,6 @@ description: >-
 
 - 若 `.claude/skills` 不存在或未指向 `.agents/skills`，建立或使用 skill 前必須建立或修復本機 link，並保留既有 skill 內容；依目前作業系統與 shell 自行選擇連結類型及指令。
     - 若 link 是在目前 session 中建立或修復，使用其中的 skill 前必須請使用者依目前環境支援的方式重新載入 skill。
-- 當 Claude 需要記憶資訊時，嚴禁寫入本機使用者家目錄下的使用者層級記憶儲存位置；必須依專案記憶規範，記錄於 repo 內由 Git 追蹤的檔案。
-    - 若專案沒有記憶規範，必須提出具體的 repo 內存放位置與記錄及讀取方式，詢問使用者是否接受，並等待同意。同意後，必須先將接受的位置與方式作為等價的穩定規則記錄於 `CLAUDE.md` 與 `CLAUDE_ch.md`，再寫入記憶。
 ```
 
 - `CODEX.md` and `CODEX_ch.md` without Codex-only rules contain only `# CODEX.md`.
