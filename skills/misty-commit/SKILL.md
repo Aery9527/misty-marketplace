@@ -1,46 +1,32 @@
 ---
 name: misty-commit
 description: >-
-  Use when preparing Git commits, choosing commit boundaries, staging changes,
-  writing or reviewing commit messages, or splitting mixed changes. Prioritize
-  accurate, meaningful history that can support release notes.
+  Group changes into single-intent commits and write or review Traditional Chinese
+  commit messages that explain high-level intent and outcomes.
 ---
 
 # Misty Commit
 
-- Make each commit explain one coherent change and why it matters. Apply the user's instructions and repository conventions before the defaults below.
-- Match the requested action: a message-only request produces a message; staging or creating a commit requires that action to be in scope. A local commit does not imply push, rebase, merge, or worktree cleanup.
+## Commit Boundaries
 
-## Inspect and Select
+1. Inspect the actual changes in scope, including staged, unstaged, and untracked content, and identify distinct intents from the task context.
+2. Each commit MUST have one coherent intent; different intents MUST be separate commits, even within one file. Keep implementation, tests, and documentation serving the same intent together.
+3. Write each message against that commit's selected changes; before actually committing, check the final staged content against the intent and message. If the intent is unclear, clarify it rather than inventing one.
 
-1. Read repository commit rules and recent history for message format, language, scope, and required trailers.
-2. Inspect `git status --short`, `git diff`, and `git diff --cached`; read relevant untracked files before including them. Check the actual content, not only file names or diff statistics.
-3. Identify the intended behavior or maintenance outcome from the diff and task context. If the purpose cannot be established, ask a focused question rather than inventing it.
-4. Group changes by intent. Include implementation, tests, documentation, and generated files together when they deliver the same outcome; split independently useful changes. Preserve unrelated edits and pre-existing staging; if staging conflicts with the intended boundary, resolve that boundary before committing.
-5. Stage only the intended files or hunks when authorized. For staging or committing, inspect the final staged diff before choosing the final message; an empty staged diff does not warrant an empty commit. For message-only work, describe the changes selected above without changing the index or including unrelated staged content.
+## Message Rules
 
-## Write the Message
+- The subject, body, and explanatory footer prose MUST use Traditional Chinese; retain necessary original technical identifiers, types/scopes, and standard trailers.
+- Follow the repository's message format; otherwise use `type(scope): summary`. Choose type and optional scope by intent.
+- The subject MUST explain the high-level intent and concrete outcome: the capability, behavior, or design responsibility being changed and why it matters. MUST NOT narrate file edits, function changes, or vague activity such as "update" or "improve"; MUST NOT claim unsupported benefits.
+- Add a body only when needed to explain motivation, triggering conditions, root cause, tradeoffs, or migration. Under Conventional Commits, mark breaking changes with `!` or `BREAKING CHANGE:` and explain the impact and migration.
 
-- The subject MUST describe the concrete outcome, behavior, or design intent. Use enough detail to distinguish this change from other commits without copying the diff.
-- Prefer the affected capability or domain over file names. For internal changes, describe the responsibility or maintenance benefit without claiming a user-visible change.
-- Avoid vague subjects such as `update files`, `misc fixes`, or `improve handling`. Do not claim an unverified fix, compatibility guarantee, or performance improvement.
-- Follow the repository's message format and language. If none is established, use an English imperative subject in Conventional Commit form: `type(scope): summary`; omit scope when no useful single scope applies.
-- Under Conventional Commits, use `feat` for a new capability, `fix` for corrected behavior, `refactor` for internal restructuring without behavior change, and `docs`, `test`, `perf`, `build`, `ci`, or `chore` when their meaning fits. Choose by intent, not file extension.
-- Keep the subject concise and follow repository length limits; MUST NOT sacrifice meaning to an arbitrary character target.
-- Add a body when the subject cannot explain the reason, important tradeoff, non-obvious behavior, or migration. Explain what and why; avoid a file-by-file narration. State validation only if it was performed, and distinguish failures or skipped checks.
-- Under Conventional Commits, mark incompatible changes with `!` or a `BREAKING CHANGE:` footer and explain the impact and required migration. Follow repository requirements for issue references, sign-offs, and attribution; MUST NOT fabricate trailers.
+## Amend and Push
+
+- When making a commit, if the latest commit is confirmed unpushed and the new changes continue the same intent, offer to amend it; amend only with the user's approval. If publication status is uncertain, the commit was pushed, or the intent differs, use a new commit. Reuse explicit approval to amend within its scope.
+- After completing the requested commits or amendments, ask whether to push. If the user has already authorized or declined pushing this submission, follow that instruction without asking again.
 
 ## Examples
 
-- Retry behavior added to an uploader: `feat(upload): retry interrupted transfers`.
-- Duplicate entries removed from a report: `fix(reports): count each invoice once`.
-- Ownership clarified without behavior change: `refactor(cache): centralize entry expiration`.
-- Recovery instructions added: `docs(backup): explain restoration after disk failure`.
-- Counterexample: `fix: update report files` hides the corrected behavior.
-
-## Verify and Commit
-
-1. Run repository- or user-required checks and reuse still-applicable results. Do not start a broad test run solely to create a local commit; a commit request does not waive required checks or hooks.
-2. If Git reports encoding or line-ending warnings, compare the diff with repository format rules and correct accidental conversions before committing.
-3. Create the commit only when requested or already authorized. MUST NOT bypass failing hooks or amend existing history without authorization; if a hook changes files, inspect and include only relevant changes before retrying.
-4. Check the resulting commit and working-tree status. Report its identifier, subject, checks performed, and any remaining changes. For message-only work, return the proposed message without mutating Git state.
+- Retrying temporary connection failures: prefer `fix(upload): 避免暫時斷線造成上傳失敗` over `fix(upload): 修改重試次數與錯誤處理`.
+- Moving expiration ownership into the cache without changing behavior: prefer `refactor(cache): 集中快取到期管理責任` over `refactor(cache): 搬移函式並調整呼叫點`.
+- Upload retries and invoice-rounding corrections are two intents: create separate commits, even if both touch the same file. Tests and documentation for upload retries belong with that change.
