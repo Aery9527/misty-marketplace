@@ -9,7 +9,7 @@ description: >-
 
 ## Choose the Commit Process
 
-1. Check the user's instructions, conversation context, repository rules, contribution documentation, applicable skills, and commit hooks for guidance governing this commit. Read applicable commit skills before choosing a workflow.
+1. Check the user's instructions, conversation context, repository rules, contribution documentation, applicable skills, commit hooks, and recent commit history for guidance governing this commit. Use history as evidence only for the aspects showing clear, consistent conventions; isolated or mixed samples MUST NOT become binding rules, and explicit instructions take precedence. Read applicable commit skills before choosing a workflow.
 2. If governing guidance exists, follow it. MUST NOT load or impose the fallback's message language, format, amend policy, or push questions. If a necessary decision remains unresolved, ask only about that decision; missing detail does not authorize the entire fallback.
 3. Only when no governing commit guidance exists, read [Default Commit Guidance](references/default-commit.md). Explicit user constraints still apply; resolve conflicts before executing affected steps.
 
