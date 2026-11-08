@@ -36,6 +36,7 @@
 ## Notes
 
 - Keep `SKILL.md` and Markdown under `references/` bilingual by the same rules as the root documents in [Document Structure](#document-structure), e.g. `SKILL.md`=`SKILL_ch.md`.
+- The [misty-commit integration reference](skills/misty-commit/references/remote-integration.md) and [misty-release integration reference](skills/misty-release/references/remote-integration.md) are intentionally duplicated so each skill ships independently. When changing either reference, MUST check both skills' English and Traditional Chinese copies, update all affected copies in the same change, and verify that the two English copies are byte-for-byte identical and the two Traditional Chinese copies are byte-for-byte identical.
 - Keep [README.md](README.md) project-level; MUST NOT list the skills it contains, because the list drifts from the frontmatter.
 - A document written only for a skill's maintainers MUST live under `docs/<skill-name>/`, not inside the skill directory.
 - Inside a skill directory, relative Markdown links MUST stay within that skill directory, because only that directory ships with the skill; name another skill in inline code instead, e.g. `write-md`.

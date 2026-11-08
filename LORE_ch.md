@@ -36,6 +36,7 @@
 ## 注意事項
 
 - `SKILL.md` 與 `references/` 底下的 Markdown 依照 [文件結構](#文件結構) 中根目錄文件的相同規則維持雙語，例如 `SKILL.md`=`SKILL_ch.md`。
+- [misty-commit 的整合指引](skills/misty-commit/references/remote-integration_ch.md)與 [misty-release 的整合指引](skills/misty-release/references/remote-integration_ch.md)刻意保留相同內容，讓每個 skill 可獨立發布。修改任一份時，必須檢查兩個 skill 的英文與繁體中文副本，在同一次變更中更新所有受影響副本，並驗證兩份英文逐位元一致、兩份繁體中文逐位元一致。
 - [README.md](README.md) 只寫專案層級內容；嚴禁列出包含的 skills，因為清單會與 frontmatter 漂移。
 - 只寫給 skill 維護者看的文件必須放在 `docs/<skill-name>/`，不放在 skill 目錄內。
 - skill 目錄內的相對 Markdown link 必須只指向該 skill 目錄內的內容，因為只有該目錄會隨 skill 一起發布；提到其他 skill 時改用 inline code 寫出名稱，例如 `write-md`。
