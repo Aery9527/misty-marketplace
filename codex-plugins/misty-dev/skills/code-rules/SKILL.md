@@ -1,9 +1,10 @@
 ---
 name: code-rules
 description: >-
-  Concrete implementation rules for maintainable code. Load when writing,
-  modifying, refactoring, or reviewing code, covering change boundaries, error
-  handling, comments, logging, and tool usage. Follow established project and
+  Concrete implementation rules for any code, including HTML and CSS. Load when
+  designing, writing, modifying, refactoring, rearchitecting, or reviewing code,
+  covering change boundaries, error handling, comments, logging, tool usage,
+  and OKLCH colors for web pages and CSS. Follow established project and
   language conventions; use `arch-rules` for higher-level design trade-offs.
 ---
 
@@ -11,7 +12,7 @@ description: >-
 
 - MUST apply this precedence: explicit project rules, consistent conventions in existing project code, language conventions, then these rules. Use `arch-rules` for design-level trade-offs.
 
-- These rules are language-independent. Examples use Go; adapt the syntax and input types to the language at hand.
+- These rules are language-independent.
 
 ## Change Rules
 
@@ -23,182 +24,16 @@ description: >-
     - Inputs serve independently usable capabilities: split those functions; a workflow function may coordinate them when that is its responsibility.
     - One operation needs multiple data fields: use an input type whose meaning corresponds to that operation, carrying required data and optional settings, including values that affect behavior.
 - Prefer existing domain types when their meaning and contract fit without bringing in substantial unrelated data. MUST NOT use an input object to conceal unrelated responsibilities.
-- Even with 3 or fewer business arguments, an input type may improve clarity.
+- When designing or changing a signature with 3 or fewer business arguments, prefer a suitable existing type; otherwise keep separate arguments by default. Group multiple inputs into a new type only when they form a meaningful data unit that known workflows need to pass, store, or validate together.
 - MUST validate required business inputs and their value ranges at a boundary all calls to the operation pass through.
     - Reject only values forbidden by the contract; `0`, `false`, and empty strings are not inherently invalid.
     - MUST document defaults for values the contract allows to be omitted. When omission differs from an explicit zero value, the input model MUST distinguish them.
     - Within one trust boundary, MUST NOT mechanically repeat the same validation at every layer.
-- Adding required data changes the contract whether it is passed individually or inside an input type.
+- Before adding required input or making existing input required, MUST inspect its construction and loading sources, identify sources that omit it, and ensure boundary validation detects missing data. This applies to individual arguments and fields added to input types alike.
+    - Update sources under our control in the same change. For sources that cannot be updated together, preserve a compatible entry point or explicitly describe the incompatible change and migration.
 - Only when explicit requirements or existing extension points show that cases will keep being added, choose a dispatch table or **Strategy Pattern** according to the behavior; otherwise keep the `if-else` / `switch`. MUST NOT abstract early merely to remove branches.
-
-### Parameter Count Examples
-
-- Same data scope: a spatial query receives four bounds and a query point, totaling six arguments. The bounds travel together between storage and queries, so introduce `Bounds`; `Contains` then has three arguments. `ctx`, receivers, and return values do not enter this count.
-
-```go
-// Bounds defines the inclusive limits of one rectangular search area.
-type Bounds struct {
-	MinX float64 // Left edge of the search area.
-	MaxX float64 // Right edge of the search area.
-	MinY float64 // Lower edge of the search area.
-	MaxY float64 // Upper edge of the search area.
-}
-
-// Contains reports whether a query point lies within the search area.
-func Contains(bounds Bounds, x, y float64) bool {
-	return x >= bounds.MinX && x <= bounds.MaxX &&
-		y >= bounds.MinY && y <= bounds.MaxY
-}
-```
-
-- Independent operations: four inputs serve item pricing and shipping estimates, which can be requested separately. Each operation uses its own two inputs, so define separate functions. These internal calculations receive data already validated at the operation boundary; each product fits the result type.
-
-```go
-// Subtotal calculates the item charge in cents for the requested quantity.
-//
-//   - The operation boundary has validated that the product fits the result type.
-func Subtotal(unitCents, quantity uint64) uint64 {
-	return unitCents * quantity
-}
-
-// ShippingCost estimates the shipping charge in cents for whole kilograms.
-//
-//   - The operation boundary has validated that the product fits the result type.
-func ShippingCost(kilograms, centsPerKilogram uint64) uint64 {
-	return kilograms * centsPerKilogram
-}
-```
-
-- One operation with many fields: creating a member uses name, email, phone, address, and locale. Keep this single responsibility and pass `CreateMemberInput` as one business argument. In this example, email must contain non-whitespace text, an empty locale defaults to `zh-TW`, and the other fields are stored as supplied. An empty or whitespace-only email returns `email required` without calling the store.
-
-```go
-import (
-	"fmt"
-	"strings"
-)
-
-// CreateMemberInput contains the registration data for one new member.
-type CreateMemberInput struct {
-	Name    string // Member's display name.
-	Email   string // Contact email; required in this example.
-	Phone   string // Member's contact number, stored as supplied.
-	Address string // Member's contact address, stored as supplied.
-	Locale  string // Language preference; empty uses "zh-TW".
-}
-
-// MemberStore persists member registration data after entry validation.
-type MemberStore interface {
-	// Insert stores one member's registration data.
-	Insert(input CreateMemberInput) error
-}
-
-// MemberService creates member records using configured storage.
-type MemberService struct {
-	Store MemberStore // Initialized storage service for member records.
-}
-
-// CreateMember validates registration data before requesting persistence.
-//
-//   - Email must contain non-whitespace text; invalid input does not reach storage.
-//   - An empty Locale uses "zh-TW".
-func (service MemberService) CreateMember(input CreateMemberInput) error {
-	if strings.TrimSpace(input.Email) == "" {
-		return fmt.Errorf("email required")
-	}
-	if input.Locale == "" {
-		input.Locale = "zh-TW"
-	}
-	if service.Store == nil {
-		return fmt.Errorf("member store required")
-	}
-	if err := service.Store.Insert(input); err != nil {
-		return fmt.Errorf("create member: %w", err)
-	}
-	return nil
-}
-```
-
-### Branching Examples
-
-- Fixed cases: the requirement defines only active and paused status labels, with unknown values displayed as `Unknown`. Keep a `switch`.
-
-```go
-// StatusLabel provides the display label for an account status.
-func StatusLabel(status string) string {
-	switch status {
-	case "active":
-		return "Active"
-	case "paused":
-		return "Paused"
-	default:
-		return "Unknown"
-	}
-}
-```
-
-- Dispatch table: the project explicitly requires plugin commands to keep being added, with plugins registering handlers at startup under the same calling contract. Add new command-handler entries to `handlers`; `Run` remains unchanged.
-
-```go
-import (
-	"context"
-	"fmt"
-)
-
-// CommandHandler performs one registered command.
-type CommandHandler func(context.Context) error
-
-// Run executes the handler registered for name.
-func Run(ctx context.Context, name string, handlers map[string]CommandHandler) error {
-	handler := handlers[name]
-	if handler == nil {
-		return fmt.Errorf("unknown command: %s", name)
-	}
-	if err := handler(ctx); err != nil {
-		return fmt.Errorf("run %s: %w", name, err)
-	}
-	return nil
-}
-```
-
-- Strategy: the project explicitly requires new shipping-fee algorithms to keep being added, each with its own configuration, and selects a policy per order at runtime. Use `ShippingPolicy`; for three kilograms, a 50-cent flat rate gives 50 cents, while 20 cents per kilogram gives 60 cents. The operation boundary validates the selected policy and its numeric inputs so that each charge fits the result type.
-
-```go
-// ShippingPolicy calculates the shipping charge for one order.
-type ShippingPolicy interface {
-	// Fee returns the charge in cents for whole kilograms.
-	Fee(kilograms uint64) uint64
-}
-
-// FlatRate applies one configured charge to the entire delivery.
-type FlatRate struct {
-	Cents uint64 // Charge per delivery, in cents.
-}
-
-// Fee returns the configured delivery charge.
-func (policy FlatRate) Fee(_ uint64) uint64 {
-	return policy.Cents
-}
-
-// PerKilogram prices a delivery using its weight and a configured unit rate.
-type PerKilogram struct {
-	Cents uint64 // Charge per whole kilogram, in cents.
-}
-
-// Fee calculates the weight-based delivery charge in cents.
-//
-//   - The operation boundary has validated that the product fits the result type.
-func (policy PerKilogram) Fee(kilograms uint64) uint64 {
-	return policy.Cents * kilograms
-}
-
-// ShippingFee applies the shipping policy selected for an order.
-//
-//   - policy must be a non-nil policy initialized for that order.
-//   - The operation boundary has validated the calculation's numeric range.
-func ShippingFee(policy ShippingPolicy, kilograms uint64) uint64 {
-	return policy.Fee(kilograms)
-}
-```
+- When reorganizing internal implementation, MUST preserve public operation call patterns and caller responsibilities. MUST NOT transfer internal selection responsibilities to operation callers. Existing input meanings, results, and errors MUST also be preserved, except for explicitly described effects of initialization changes.
+    - Initialization and dependency assembly may change. If initialization call patterns or behavior change, MUST inspect actual construction sources and compatibility commitments and explain the impact. Update sources under our control; for others, preserve a compatible entry point or explicitly describe the incompatible change and migration.
 
 ## Error Rules
 
@@ -216,42 +51,12 @@ func ShippingFee(policy ShippingPolicy, kilograms uint64) uint64 {
     - Field and argument comments MUST explain the data's meaning and include an example when a fixed format applies.
     - Function comments MUST document existing preconditions, call-ordering constraints, and cross-module contracts that affect correct use or modification and are not fully expressed by the function's name or declared types (including receiver, parameter, and result types); omit these supplementary items when none apply. MUST NOT enumerate callers or callees merely to repeat the call graph.
 
-- Declaration comment example:
-
-```go
-import "strings"
-
-// Message contains the content and destination of one SMS delivery.
-type Message struct {
-	Phone string // Taiwan mobile number in XXXX-XXX-XXX format, e.g. "0909-878-787".
-	Text  string // Recipient-visible content, e.g. "Your pickup code is 123456".
-}
-
-// Sender delivers SMS messages through a configured transport.
-type Sender interface {
-	// Connect establishes a connection for SMS delivery.
-	Connect() error
-
-	// Send submits one message for delivery to its recipient.
-	//
-	//   - Connect must succeed before the first call.
-	//   - A nil error confirms that the transport accepted the message.
-	Send(message Message) error
-}
-
-// HasContent reports whether text can be used as nonblank message content.
-// Example: HasContent(" Ready ") returns true; HasContent("   ") returns false.
-func HasContent(text string) bool {
-	return strings.TrimSpace(text) != ""
-}
-```
-
 ## Logging Rules
 
 - Every piece of information MUST have traceable value for later tracking, statistics, analysis, or debugging. Information that helps none of these MUST NOT be logged.
 - Every log line MUST be traceable to one code location, either because the message is unique or because the logger attaches the source location automatically.
-- Logs MUST use a compact structure, not prose. If the project has a structured-field logging convention, MUST follow it; otherwise use a fixed-order positional format, e.g. `Enter {AGE} {NAME} "{MSG}"`. Field meaning comes from the code location.
-- When logging solely for statistics, MUST aggregate data and log on a timer or a count, e.g. accumulate request counts and write `Request ALL 123` every 5s, rather than logging each event.
+- Logs MUST use a compact structure, not prose. If the project has a structured-field logging convention, MUST follow it; otherwise use a fixed-order positional format. Field meaning comes from the code location.
+- When logging solely for statistics, MUST aggregate data and log on a timer or a count, rather than logging each event.
     - If losing an unlogged interval is unacceptable, log each event instead; statistics may be derived from these logs.
     - Event logs already required for diagnostics or auditing may also be reused for statistics.
 - If the project has no level policy: `DEBUG` diagnoses, `INFO` records meaningful lifecycle events, `WARN` records recoverable degradation, and `ERROR` records failed outcomes that need human attention.
@@ -259,5 +64,13 @@ func HasContent(text string) bool {
 
 ## Execution Awareness
 
-- When handling code or HTML, if the host provides an `LSP` tool that supports the language, MUST prefer it so lookup and edits follow real program symbols; otherwise use text-based tools.
-- Colors in web pages and CSS MUST be defined in `OKLCH`. For other visual output such as ppt, pick colors in OKLCH, then convert to a color space the target format supports.
+- When handling code or HTML, if the current environment provides an available `LSP` tool that supports the language, MUST prefer it so lookup and edits follow real program symbols; otherwise use text-based tools.
+- Colors in web pages and CSS MUST be defined in `OKLCH`. For other visual output, pick colors in OKLCH, then convert to a color space the target format supports.
+
+## Example References
+
+- For initial design and implementation, refactoring, or rearchitecting, MUST evaluate the conditions for parameter count and branching below against known requirements and the planned implementation before deciding interfaces and responsibility boundaries. Read any triggered reference before making those decisions.
+- When an existing or planned function signature has more than 3 business arguments (excluding execution context and implicit receivers), MUST read [Parameter Count Examples](references/parameter-examples.md) before deciding how to split responsibilities or group inputs.
+- When known requirements or extension points show that `if-else` / `switch` branches will keep growing and involve distinct responsibilities or behavior implementations that can change independently, MUST read [Branching Examples](references/branching-examples.md) before deciding how to separate responsibilities and whether a dispatch table or Strategy is appropriate.
+- Before writing or modifying code, MUST read [Declaration Comment Examples](references/comment-examples.md) and follow the Comment Rules and the demonstrated commenting approach. While making the change, if the affected code lacks required comments, or its comments contradict the confirmed purpose, data meaning, or contracts, or violate the Comment Rules, MUST add or correct them as part of the same change.
+- Before writing or modifying log statements, MUST read [Logging Examples](references/logging-examples.md) and follow the Logging Rules and the demonstrated logging approach.
