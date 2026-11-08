@@ -1,33 +1,27 @@
 ---
 name: misty-release
 description: >-
-  Choose release versions and write outcome-focused notes; publish a note-bearing
-  tagged release commit on the default branch.
+  Prepare release versions, notes, and publication using the current context and
+  project skills; use the fallback workflow only when no release process is defined.
 ---
 
 # Misty Release
 
-## Release Scope
+## Choose the Release Process
 
-1. Confirm the release unit, candidate commit, selected remote's actual default branch, and previous applicable release. Read full commit messages and diffs to identify net delivered changes; if there are none, do not create a release.
-2. Before changing release files or integrating, present the current branch, default branch, release scope, and publication effects; ask whether to integrate and release there. Reuse explicit approval for the same source, target, and release scope; when already on the default branch, no self-merge is needed.
-3. For notes-only requests, return the draft without changing Git state.
+1. Check the user's instructions, conversation context, repository rules, release documentation, applicable skills, and release automation for the process governing this release. Read applicable release skills before choosing a workflow.
+2. If a governing process exists, follow it. MUST NOT load or impose the fallback's branch, note retention, commit language, or tag model. If that process leaves a necessary decision unresolved, ask only about that decision; missing detail does not authorize the entire fallback.
+3. Only when no governing release process exists, read [Default Release Workflow](references/default-release.md) and use it as the fallback. Explicit user constraints still apply; resolve conflicts before executing affected steps.
 
-## Notes and Version
+## Basic Questions and Authorization
 
-- Group related commits into meaningful capabilities, fixes, or design outcomes. Notes MUST explain their impact and any required migration; MUST NOT be a list of commit subjects or file edits, or claim unsupported benefits. Omit release bookkeeping and changes fully reverted before the candidate.
-- Follow the project's version scheme. For Semantic Versioning, choose the increment from actual compatibility and delivered behavior, not commit types alone.
-- Use the user-specified or project-defined note location; otherwise use the output template `docs/release-note/<version>.md`. Name the file after the selected version, without silently relocating existing notes.
-- Retain only the latest 10 version-note files in that directory, including the new one. Determine order from confirmed release history; prune older notes in the same release commit as the new note, preserving historical tags and unrelated documents. If the set or order is unclear, clarify before deleting.
+1. Establish the release unit, source candidate, previous applicable release, version or version-selection rule, and requested result: notes only, local preparation, or publication. Reuse answers and authorization already present; ask only for information that cannot be established from the available context.
+2. Before changing release files or integrating, present the current branch, intended target, release scope, and publication effects. Ask whether to proceed if explicit approval for the same source, target, and scope is absent. MUST NOT treat approval for local preparation as approval to push or publish.
+3. For notes-only requests, return the draft without changing Git state. Verify results using the chosen process before reporting completion; distinguish prepared content, published results, and pending checks.
 
-## Release Result
+## Routing Examples
 
-1. Use the project's integration and release mechanism, including PRs or CI. The final validated release commit MUST contain the new note and correct retention result, be reachable from the default branch, and be the exact target of the release tag. Use the actual landed SHA after PR merge or CI generation; MUST NOT overwrite an existing release tag.
-2. Release-commit prose MUST use Traditional Chinese, retaining necessary original technical identifiers and trailers. For CI-owned messages, check the template before triggering and verify the generated message; resolve conflicts with the user. MUST NOT rewrite landed history solely to change its language.
-3. Run the project's required checks against the final release content and execute only authorized publication steps. Verify that the remote default branch reaches the release commit, the remote tag resolves to it, and the notes and required CI/artifacts match before reporting publication complete; report pending CI or partial completion accurately.
-
-## Examples
-
-- Five commits delivering upload retries become one note describing recovery from temporary disconnections, rather than five implementation entries.
-- With 10 existing version notes, adding the next version removes the oldest confirmed note in the same release commit, leaving 10 including the new one.
-- A squash-merged release PR is tagged at its validated landed commit on the default branch, not at the earlier PR head.
+- Commit and release guidance are resolved separately: a project's commit-message convention does not by itself define a release process, and a release process does not by itself define ordinary commit conventions.
+- A project release skill uses a maintenance branch, keeps all notes, and publishes through CI: follow that skill without loading the fallback.
+- The user selects a version but no release process exists: use the fallback with that version, and ask only for unresolved release decisions or authorization.
+- A project process defines tagging but omits a required note destination: ask for that destination; do not silently impose the fallback's path or retention policy.

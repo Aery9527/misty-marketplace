@@ -1,32 +1,30 @@
 ---
 name: misty-commit
 description: >-
-  Group changes into single-intent commits and write or review Traditional Chinese
-  commit messages that explain high-level intent and outcomes.
+  Prepare or review commit boundaries and messages using the current context and
+  project skills; use the basic fallback only when no commit guidance is defined.
 ---
 
 # Misty Commit
 
-## Commit Boundaries
+## Choose the Commit Process
 
-1. Inspect the actual changes in scope, including staged, unstaged, and untracked content, and identify distinct intents from the task context.
-2. Each commit MUST have one coherent intent; different intents MUST be separate commits, even within one file. Keep implementation, tests, and documentation serving the same intent together.
-3. Write each message against that commit's selected changes; before actually committing, check the final staged content against the intent and message. If the intent is unclear, clarify it rather than inventing one.
+1. Check the user's instructions, conversation context, repository rules, contribution documentation, applicable skills, and commit hooks for guidance governing this commit. Read applicable commit skills before choosing a workflow.
+2. If governing guidance exists, follow it. MUST NOT load or impose the fallback's message language, format, amend policy, or push questions. If a necessary decision remains unresolved, ask only about that decision; missing detail does not authorize the entire fallback.
+3. Only when no governing commit guidance exists, read [Default Commit Guidance](references/default-commit.md). Explicit user constraints still apply; resolve conflicts before executing affected steps.
 
-## Message Rules
+## Basic Questions and Authorization
 
-- The subject, body, and explanatory footer prose MUST use Traditional Chinese; retain necessary original technical identifiers, types/scopes, and standard trailers.
-- Follow the repository's message format; otherwise use `type(scope): summary`. Choose type and optional scope by intent.
-- The subject MUST explain the high-level intent and concrete outcome: the capability, behavior, or design responsibility being changed and why it matters. MUST NOT narrate file edits, function changes, or vague activity such as "update" or "improve"; MUST NOT claim unsupported benefits.
-- Add a body only when needed to explain motivation, triggering conditions, root cause, tradeoffs, or migration. Under Conventional Commits, mark breaking changes with `!` or `BREAKING CHANGE:` and explain the impact and migration.
+1. Establish the intended change scope and requested result: message or boundary review, local commits, or publication. Reuse available answers and authorization; ask only about information that cannot be established from the context, including whether unrelated changes belong in scope.
+2. For message-only or review-only requests, return the proposal without changing Git state. Before a commit, check its final staged content against the selected scope and message; clarify an unclear intent instead of inventing one.
+3. Execute only authorized mutations. Approval to create a commit does not authorize an amend, push, tag, or release. Report the commits actually created and any pending steps.
 
-## Amend and Push
+## Release Handoff
 
-- When making a commit, if the latest commit is confirmed unpushed and the new changes continue the same intent, offer to amend it; amend only with the user's approval. If publication status is uncertain, the commit was pushed, or the intent differs, use a new commit. Reuse explicit approval to amend within its scope.
-- After completing the requested commits or amendments, ask whether to push. If the user has already authorized or declined pushing this submission, follow that instruction without asking again.
+- When a release workflow invokes this skill, reuse its selected scope and authorization and return the resulting commit SHA to that workflow. Commit guidance does not replace the release process.
+- When the user requests a release and no project release process exists, use `misty-release` if available. Completing an ordinary commit alone MUST NOT initiate a release.
 
-## Examples
+## Routing Examples
 
-- Retrying temporary connection failures: prefer `fix(upload): 避免暫時斷線造成上傳失敗` over `fix(upload): 修改重試次數與錯誤處理`.
-- Moving expiration ownership into the cache without changing behavior: prefer `refactor(cache): 集中快取到期管理責任` over `refactor(cache): 搬移函式並調整呼叫點`.
-- Upload retries and invoice-rounding corrections are two intents: create separate commits, even if both touch the same file. Tests and documentation for upload retries belong with that change.
+- A project commit skill requires English subjects and a ticket prefix: follow it without loading the fallback.
+- No commit guidance exists and the user asks to commit upload retries: use the fallback and create only the authorized local commit; do not tag or release it.
