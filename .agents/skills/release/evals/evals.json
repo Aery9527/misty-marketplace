@@ -36,6 +36,12 @@
       "prompt": "已確認下一版為 v3.0.0，請準備本 repo 的發布檔案。假設第一次執行 Codex 同步失敗。",
       "expected_output": "marketplace metadata.version 應為3.0.0，README與note對應v3.0.0；同步失敗時回報已完成與未完成步驟，不提交或發布不一致產物。修正後重跑同步及驗證，並依 misty 重驗最終內容。",
       "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "這個 repo 最近十筆提交是英文，但目前 local commit 與 release 已明確採用 misty 預設。請為已核准版本準備 release-preparation commit 的訊息草稿，不要寫檔或操作 Git。",
+      "expected_output": "依明確採用的 misty-commit 預設提供繁中 Conventional Commit 草稿，不以舊英文歷史覆蓋已採用的規則，也不對已決定的語言重問；不 stage、commit、tag 或 push。",
+      "files": []
     }
   ]
 }

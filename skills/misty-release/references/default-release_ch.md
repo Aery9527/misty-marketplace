@@ -29,7 +29,7 @@
 ## 發布成果
 
 1. 準備選定版號的相關檔案與 release note，再建立發布準備 commit。若可用則使用 `misty-commit`，傳入選定範圍與既有授權；否則核對暫存 diff，為該範圍撰寫成果導向訊息。無關修改不能納入 release commit。最終已驗證的 release commit 必須包含新 note 與正確保留結果、位於 default branch 第一父系歷史，且 release tag 直接指向該 commit。整合或 CI 產生 commit 後，使用實際落地 SHA；本地或 PR 合併產生 merge commit 時，必須在該 merge commit 打 tag，不能在被合併分支的準備 commit 打 tag。嚴禁覆寫既有 release tag。
-2. 遵循適用的 commit message 指引，包括從近期 commit 歷史確認的清楚一致慣例；沒有指引時，release commit 敘述必須使用繁體中文，技術識別字與 trailer 保留必要原文。由 CI 決定訊息時，觸發前檢查模板，產生後核對訊息；若有衝突先與使用者釐清。嚴禁只為改變語言而改寫已落地歷史。
+2. 遵循使用者明確指示與適用的 commit message 指引，包括明確採用的 `misty-commit` 預設。嚴禁以歷史推得的慣例覆蓋這些選擇；只對仍未確定的決策採用清楚一致的歷史慣例。沒有 commit message 指引時，release commit 敘述必須使用繁體中文，技術識別字與 trailer 保留必要原文。由 CI 決定訊息時，觸發前檢查模板，產生後核對訊息；若有衝突先與使用者釐清。嚴禁只為改變語言而改寫已落地歷史。
 3. 打 tag 前，更新所選遠端的 default branch 與 tag 資訊，重新驗證實際的最終 release commit。本地整合必須在 push 前驗證；PR 或 CI 整合必須在落地後、打 tag 前驗證。確認從更新後的遠端 default branch 頂端沿第一父系向前找到的第一個適用 tag，以及最終 commit 第一父系歷史上的前一版適用 tag，仍與已確認基準一致。比較該基準至最終 commit 的交付淨變更，排除純發布紀錄，核對升版幅度與成果／遷移 notes。若基準、交付範圍、相容性、notes、版號或清理清單改變，先停止打 tag 與發布，回到版號推薦：更新發布檔及必要提交、重跑檢查，並依既有授權規則確認改變的決策或範圍。使用者自選版號有衝突時，說明衝突，不能靜默替換；清理清單改變時，重新展示並取得授權。已落地內容以新 commit 修正，不能改寫已落地歷史。遠端前進導致整合或 push 需要重做時，必須重跑此驗證。
 4. 對最終發布內容執行專案必要檢查，只執行已授權的發布步驟。確認 release commit 位於遠端 default branch 第一父系歷史、遠端 tag 指向該 commit，且 notes 與必要 CI／產物相符後，才能回報發布完成；CI 尚在執行或僅部分完成時，必須如實回報。
 
