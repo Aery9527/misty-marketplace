@@ -33,6 +33,12 @@
     - overlay 只擁有它自己宣告的項目，且嚴禁包含 `.codex-plugin` 或 `skills`。
     - 同步腳本會依 overlay 新增或移除 `plugin.json` 的 `"hooks": "./hooks.json"` 宣告；嚴禁手動修改。
 
+## Commit 與 Release 流程
+
+- 本儲存庫進行 commit 或 release 時，必須先讀取適用的 repo-local [commit skill](.agents/skills/commit/SKILL.md) 或 [release skill](.agents/skills/release/SKILL.md)，依其專案流程執行。同時啟用 `misty-commit`、`misty-release` 或其他處理同類任務的通用 skill 時，仍以該 repo-local skill 為適用規範。
+- 同時載入通用 skill 不代表啟用其預設參考文件。嚴禁自動載入或將通用預設混入 repo-local 流程；專案細節缺漏不代表可以用預設行為補齊。
+- 已啟用通用 skill 主檔的入口檢核仍適用，包括範圍、授權與如實回報結果。依本次使用者指示及既有相同範圍的明確授權判定可執行操作，並沿用該授權。必要決策未定或適用要求仍有衝突時，在受影響步驟前只釐清該項決策。
+
 ## 注意事項
 
 - `SKILL.md` 與 `references/` 底下的 Markdown 依照 [文件結構](#文件結構) 中根目錄文件的相同規則維持雙語，例如 `SKILL.md`=`SKILL_ch.md`。

@@ -33,6 +33,12 @@
     - An overlay owns only the entries it declares, and MUST NOT contain `.codex-plugin` or `skills`.
     - The sync script adds or removes the `"hooks": "./hooks.json"` declaration in `plugin.json` to match the overlay; MUST NOT edit it manually.
 
+## Commit and Release Workflows
+
+- For commit or release work in this repository, MUST first read the applicable repo-local [commit skill](.agents/skills/commit/SKILL.md) or [release skill](.agents/skills/release/SKILL.md) and follow its project workflow. Treat it as governing guidance when `misty-commit`, `misty-release`, or another generic skill for the same task is also active.
+- Co-loading a generic skill does not enable its fallback references. MUST NOT automatically load or mix generic defaults into the repo-local workflow; missing project detail is not permission to fill it with fallback behavior.
+- Entrypoint checks from active generic skills, including scope, authorization, and accurate result reporting, still apply. Determine authorized operations from the current user instructions and existing explicit approval for the same scope; reuse that approval. If a necessary decision is unresolved or applicable requirements remain in conflict, clarify only that decision before the affected step.
+
 ## Notes
 
 - Keep `SKILL.md` and Markdown under `references/` bilingual by the same rules as the root documents in [Document Structure](#document-structure), e.g. `SKILL.md`=`SKILL_ch.md`.
