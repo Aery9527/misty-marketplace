@@ -1,6 +1,6 @@
 # Default Commit Guidance
 
-- Read this reference only when the entrypoint determines that no governing commit guidance exists. Explicit user constraints take precedence.
+- Read this reference when the entrypoint selects it because the project explicitly adopts this default workflow or no governing commit guidance exists. Explicit user constraints and project supplements take precedence.
 
 ## Commit Boundaries
 

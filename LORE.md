@@ -35,9 +35,9 @@
 
 ## Commit and Release Workflows
 
-- For commit or release work in this repository, MUST first read the applicable repo-local [commit skill](.agents/skills/commit/SKILL.md) or [release skill](.agents/skills/release/SKILL.md) and follow its project workflow. Treat it as governing guidance when `misty-commit`, `misty-release`, or another generic skill for the same task is also active.
-- Co-loading a generic skill does not enable its fallback references. MUST NOT automatically load or mix generic defaults into the repo-local workflow; missing project detail is not permission to fill it with fallback behavior.
-- Entrypoint checks from active generic skills, including scope, authorization, and accurate result reporting, still apply. Determine authorized operations from the current user instructions and existing explicit approval for the same scope; reuse that approval. If a necessary decision is unresolved or applicable requirements remain in conflict, clarify only that decision before the affected step.
+- The repo-local [commit entrypoint](.agents/skills/commit/SKILL.md) and [release entrypoint](.agents/skills/release/SKILL.md) explicitly adopt the default workflows of [misty-commit](skills/misty-commit/SKILL.md) and [misty-release](skills/misty-release/SKILL.md). Read the applicable source skill and its selected references; the local entrypoints are adapters, not independent workflows.
+- Keep local guidance limited to project inputs and required artifact/sync actions. Apply those supplements within the adopted workflow; MUST NOT duplicate its general rules or route back to the local adapter. This explicit adoption enables the default references; independent project workflows elsewhere still follow the misty entrypoint's precedence rules.
+- Scope, authorization, and accurate result reporting remain governed by the adopted skill. Determine authorized operations from the current user instructions and existing explicit approval for the same scope; reuse that approval. Clarify only necessary unresolved decisions or conflicts before the affected step. If a required source skill cannot be read, stop and report the missing dependency rather than inventing a replacement workflow.
 
 ## Notes
 

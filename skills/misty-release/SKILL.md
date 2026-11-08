@@ -2,7 +2,8 @@
 name: misty-release
 description: >-
   Prepare release versions, notes, and publication using the current context and
-  project skills; use the fallback workflow only when no release process is defined.
+  project skills; use the default workflow when explicitly adopted or when no
+  release process is defined.
 ---
 
 # Misty Release
@@ -10,8 +11,9 @@ description: >-
 ## Choose the Release Process
 
 1. Check the user's instructions, conversation context, repository rules, release documentation, applicable skills, and release automation for the process governing this release. Read applicable release skills before choosing a workflow.
-2. If a governing process exists, follow it. MUST NOT load or impose the fallback's branch, note retention, commit language, or tag model. If that process leaves a necessary decision unresolved, ask only about that decision; missing detail does not authorize the entire fallback.
-3. Only when no governing release process exists, read [Default Release Workflow](references/default-release.md) and use it as the fallback. Explicit user constraints still apply; resolve conflicts before executing affected steps.
+2. If project guidance explicitly adopts this skill's default workflow and only adds project-specific inputs or actions, read [Default Release Workflow](references/default-release.md) as the adopted base and apply those supplements at the relevant steps. This explicit delegation does not select an independent project workflow; MUST NOT route back to the delegating wrapper or treat its version/sync requirements as a reason to skip the adopted base. Explicit user constraints and declared project supplements take precedence over the base; resolve conflicts before affected steps.
+3. Otherwise, if a governing process exists, follow it. MUST NOT load or impose the fallback's branch, note retention, commit language, or tag model. If that process leaves a necessary decision unresolved, ask only about that decision; missing detail does not authorize the entire fallback.
+4. Otherwise, when no governing release process exists, read [Default Release Workflow](references/default-release.md) and use it as the fallback. Explicit user constraints still apply; resolve conflicts before executing affected steps.
 
 ## Basic Questions and Authorization
 
@@ -23,5 +25,6 @@ description: >-
 
 - Commit and release guidance are resolved separately: a project's commit-message convention does not by itself define a release process, and a release process does not by itself define ordinary commit conventions.
 - A project release skill uses a maintenance branch, keeps all notes, and publishes through CI: follow that skill without loading the fallback.
+- A local entrypoint explicitly adopts `misty-release` and specifies version files and package-sync commands: use the adopted default workflow with those project actions; do not delegate back to the local entrypoint.
 - The user selects a version but no release process exists: use the fallback with that version, and ask only for unresolved release decisions or authorization.
 - A project process defines tagging but omits a required note destination: ask for that destination; do not silently impose the fallback's path or retention policy.

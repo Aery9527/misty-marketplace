@@ -1,6 +1,6 @@
 # Default Release Workflow
 
-- Read this reference only when the entrypoint determines that no governing release process exists. User constraints take precedence over these defaults.
+- Read this reference when the entrypoint selects it because the project explicitly adopts this default workflow or no governing release process exists. User constraints and project supplements take precedence over these defaults.
 
 ## Release Scope
 
