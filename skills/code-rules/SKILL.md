@@ -38,7 +38,7 @@ Code examples below use Go; map them to the language at hand.
 - Every struct, function, and field MUST have a concise comment describing its purpose or meaning.
     - A struct comment MUST state its responsibility and scope. Prefer describing what it does; express excluded responsibilities through workflow or module boundaries.
     - Field and argument comments MUST explain the data's meaning and include an example when a fixed format applies, e.g. `Phone string // Taiwan mobile number in XXXX-XXX-XXX format, e.g. "0909-878-787"`.
-    - Function comments MUST list call ordering, preconditions, and cross-module contracts not evident from the code as bullet points. MUST NOT enumerate callers or callees merely to repeat the call graph.
+    - Function comments MUST document existing preconditions, call-ordering constraints, and cross-module contracts that affect correct use or modification and are not evident from the code; omit these when none apply. MUST NOT enumerate callers or callees merely to repeat the call graph.
 
 ## Logging Rules
 
