@@ -23,8 +23,8 @@
 
 ## Examples
 
-- Retrying temporary connection failures: prefer `fix(upload): 避免暫時斷線造成上傳失敗` over `fix(upload): 修改重試次數與錯誤處理`.
-- Adding a compatible CSV export: use `feat(export): 支援將報表匯出為 CSV`.
+- Fixing existing retries that abort prematurely during temporary disconnections: prefer `fix(upload): 修正暫時斷線時重試過早中止` over `fix(upload): 修改重試次數與錯誤處理`.
+- Adding compatible CSV export for upload reports: use `feat(export): 支援將上傳結果報表匯出為 CSV`.
 - Removing a supported flag: use `feat(upload)!: 統一上傳重試參數`, with a body identifying the removed `--retry-count` flag and migration to `--retries`.
 - Moving expiration ownership into the cache without changing behavior: prefer `refactor(cache): 集中快取到期管理責任` over `refactor(cache): 搬移函式並調整呼叫點`.
 - Upload retries and invoice-rounding corrections are two intents: create separate commits, even if both touch the same file. Tests and documentation for upload retries belong with that change.

@@ -21,21 +21,22 @@
 ## 發布說明
 
 - 將相關 commit 整理成有意義的能力、修復或設計成果。Notes 必須說明其影響與必要遷移；嚴禁只列 commit subject、檔案修改或無證據的效益。省略發布紀錄項目與候選版本前已完全 revert 的變更。
-- 使用使用者指定的 notes 位置；未指定時使用輸出路徑樣式 `docs/release-note/<版號>.md`。依選定版號命名，嚴禁靜默搬移既有 notes。若既有 notes 已使用另一位置，寫入前先釐清目的地。
-- 該目錄只保留最近 10 份版本 notes，包含本次新檔。依可確認的發布歷史排序，舊 note 刪除與新 note 納入同一 release commit，保留歷史 tag 與無關文件。集合或順序不明時，刪除前先釐清。
+- 使用使用者指定的 notes 位置；未指定時使用輸出路徑樣式 `docs/release-note/<tag>.md`，其中 `<tag>` 包含 `v` 前綴，例如 `v3.0.0.md`。若既有 notes 已使用其他位置或命名慣例，寫入前先釐清；嚴禁靜默搬移或重新命名。
+- 該目錄只保留最近 10 份版本 notes，包含本次新檔。依可確認的發布歷史排序，將待清理的確切檔名納入發布範圍展示，刪除前取得涵蓋該清單的授權。同一清單展示後已取得的授權可沿用。已授權的舊 note 刪除與新 note 納入同一 release commit，保留歷史 tag 與無關文件。集合或順序不明時，提議刪除前先釐清。
 - 撰寫 notes 時，讀取 [Release Note 範例](release-note-example_ch.md)。依實際交付變更調整結構，省略不適用章節，嚴禁將虛構內容複製為專案事實。
 
 ## 發布成果
 
-1. 準備選定版號的相關檔案與 release note，再建立發布準備 commit。若可用則使用 `misty-commit`，傳入選定範圍與既有授權；否則核對暫存 diff，為該範圍撰寫成果導向訊息。無關修改不能納入 release commit。最終已驗證的 release commit 必須包含新 note 與正確保留結果、可從 default branch 到達，且 release tag 直接指向該 commit。PR 合併或 CI 產生 commit 後，使用實際落地 SHA；嚴禁覆寫既有 release tag。
+1. 準備選定版號的相關檔案與 release note，再建立發布準備 commit。若可用則使用 `misty-commit`，傳入選定範圍與既有授權；否則核對暫存 diff，為該範圍撰寫成果導向訊息。無關修改不能納入 release commit。最終已驗證的 release commit 必須包含新 note 與正確保留結果、位於 default branch 第一父系歷史，且 release tag 直接指向該 commit。整合或 CI 產生 commit 後，使用實際落地 SHA；本地或 PR 合併產生 merge commit 時，必須在該 merge commit 打 tag，不能在被合併分支的準備 commit 打 tag。嚴禁覆寫既有 release tag。
 2. 遵循適用的 commit message 指引；沒有指引時，release commit 敘述必須使用繁體中文，技術識別字與 trailer 保留必要原文。由 CI 決定訊息時，觸發前檢查模板，產生後核對訊息；若有衝突先與使用者釐清。嚴禁只為改變語言而改寫已落地歷史。
-3. 對最終發布內容執行專案必要檢查，只執行已授權的發布步驟。確認遠端 default branch 可到達 release commit、遠端 tag 指向該 commit，且 notes 與必要 CI／產物相符後，才能回報發布完成；CI 尚在執行或僅部分完成時，必須如實回報。
+3. 對最終發布內容執行專案必要檢查，只執行已授權的發布步驟。確認 release commit 位於遠端 default branch 第一父系歷史、遠端 tag 指向該 commit，且 notes 與必要 CI／產物相符後，才能回報發布完成；CI 尚在執行或僅部分完成時，必須如實回報。
 
 ## 範例
 
 - 專案沒有 commit 或 release 指引，從 `v2.4.3` 起有相容的 `fix` 與 `feat` commit：核對訊息與 diff 後推薦 `v2.5.0`，將交付成果分組寫入 note，一起提交 note 與版號檔，再於 default branch 上已驗證的 release commit 打 tag，取得授權後才對外發布。發布準備 commit 不會再次觸發升版，也不列為 note 項目。
 - 從 `v2.4.3` 出發，只有相容修復時推薦 `v2.4.4`；相容新能力加修復時推薦 `v2.5.0`；移除既有支援的 CLI 旗標時推薦 `v3.0.0`。
 - Default branch 最近的適用 tag 是 `v2.4.3`，尚未合併的功能分支有 `v9.0.0`：以 `v2.4.3` 為比較基準。
-- 五個 commit 共同完成上傳重試，整理為一項「從暫時斷線恢復傳輸」的成果說明，而非五條實作紀錄。
+- 五個 commit 共同修復重試過早中止，整理為一項「暫時斷線時正確使用設定的重試次數」的成果說明，而非五條實作紀錄。
 - 已有 10 份版本 notes 時，新增下一版必須在同一 release commit 移除已確認最舊的一份，最後保留包含新檔的 10 份。
 - Release PR 經 squash 合併後，在 default branch 上已驗證的落地 commit 打 tag，不能在先前 PR head 打 tag。
+- 發布準備 commit C 經 merge commit M 整合至 default branch 時，在已驗證的 M 打 tag；下一次沿第一父系搜尋時，就能找到該發布 tag。

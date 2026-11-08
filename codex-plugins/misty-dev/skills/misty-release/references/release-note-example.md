@@ -4,14 +4,15 @@
 - Group by delivered outcome. Include a breaking-change section and concrete migration steps only when the release requires them; omit empty sections.
 
 ```markdown
-# 3.0.0
+# v3.0.0
 
 ## New Capabilities
 
-- Uploads automatically retry temporary connection failures up to three times. A connection restored within those attempts no longer requires restarting the command manually; after the third failed retry, the command still reports failure.
+- Upload result reports can now be exported as CSV, allowing their records to be imported into a spreadsheet without parsing the text report.
 
 ## Fixes
 
+- Uploads now honor the configured retry count during temporary connection failures. Previously, the CLI aborted after the first failed retry even when more retries were configured.
 - Files whose names contain spaces now retain their complete names at the destination. Previously, the CLI truncated the name at the first space.
 
 ## Breaking Changes
