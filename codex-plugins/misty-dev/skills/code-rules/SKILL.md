@@ -9,14 +9,14 @@ description: >-
 
 # Code Rules
 
-Code MUST follow these rules regardless of language, framework, or project. If the project has explicit conventions, they MUST take precedence. Use `arch-rules` for design-level trade-offs.
+- MUST apply this precedence: explicit project rules, consistent conventions in existing project code, language conventions, then these rules. Use `arch-rules` for design-level trade-offs.
 
 Code examples below use Go; map them to the language at hand.
 
 ## Change Rules
 
 - Before changing behavior, MUST read direct callers, tests covering the affected behavior, and the containing module to confirm the existing contract.
-- Before writing code, MUST state what behavior changes, what must remain compatible, and how each is verified.
+- Before writing code, MUST state the intended behavior and how it will be verified; include compatibility constraints only when they apply.
 - One change does one thing. MUST NOT mix unrelated cleanup into a behavior change; put cleanup in a separate commit.
 - Before adding an argument, MUST check the count. The default limit is 3, excluding call-chain parameters such as `ctx`, the receiver, and return values. When exceeded:
     - Same scope and always handled together: apply **Introduce Parameter Object**.
@@ -32,20 +32,22 @@ Code examples below use Go; map them to the language at hand.
 
 ## Comment Rules
 
-- Describe high-level intent, implicit meaning, constraints, and trade-offs, never details the code itself already reveals.
+- Describe high-level purpose, data meaning, contracts, constraints, and trade-offs. MUST NOT narrate implementation steps.
 - When a comment records two or more independent points, MUST format them as a bullet list, not prose.
 - Change history belongs only in commit messages. MUST NOT put it in code comments.
-- Every struct, function, and field MUST have a concise comment describing its purpose or meaning.
+- Every type, function, and field MUST have a concise comment giving a high-level overview of its purpose or meaning.
     - A struct comment MUST state its responsibility and scope. Prefer describing what it does; express excluded responsibilities through workflow or module boundaries.
     - Field and argument comments MUST explain the data's meaning and include an example when a fixed format applies, e.g. `Phone string // Taiwan mobile number in XXXX-XXX-XXX format, e.g. "0909-878-787"`.
-    - Function comments MUST document existing preconditions, call-ordering constraints, and cross-module contracts that affect correct use or modification and are not evident from the code; omit these when none apply. MUST NOT enumerate callers or callees merely to repeat the call graph.
+    - Function comments MUST document existing preconditions, call-ordering constraints, and cross-module contracts that affect correct use or modification and are not fully expressed by the function's name or declared types (including receiver, parameter, and result types); omit these supplementary items when none apply. MUST NOT enumerate callers or callees merely to repeat the call graph.
 
 ## Logging Rules
 
 - Every piece of information MUST have traceable value for later tracking, statistics, analysis, or debugging. Information that helps none of these MUST NOT be logged.
 - Every log line MUST be traceable to one code location, either because the message is unique or because the logger attaches the source location automatically.
 - Logs MUST use a compact structure, not prose. If the project has a structured-field logging convention, MUST follow it; otherwise use a fixed-order positional format, e.g. `Enter {AGE} {NAME} "{MSG}"`. Field meaning comes from the code location.
-- Statistics MUST be aggregated before logging on a timer or a count, e.g. accumulate request counts and write `Request ALL 123` every 5s. MUST NOT derive statistics afterwards from repeated event logs. Data from an interval not yet logged may be lost; if that is unacceptable, log each event.
+- When logging solely for statistics, MUST aggregate data and log on a timer or a count, e.g. accumulate request counts and write `Request ALL 123` every 5s, rather than logging each event.
+    - If losing an unlogged interval is unacceptable, log each event instead; statistics may be derived from these logs.
+    - Event logs already required for diagnostics or auditing may also be reused for statistics.
 - If the project has no level policy: `DEBUG` diagnoses, `INFO` records meaningful lifecycle events, `WARN` records recoverable degradation, and `ERROR` records failed outcomes that need human attention.
 - MUST NOT dump whole requests, responses, or objects. Payload size and field count follow project limits; if none exist, log selected fields only.
 
