@@ -33,9 +33,17 @@
     - An overlay owns only the entries it declares, and MUST NOT contain `.codex-plugin` or `skills`.
     - The sync script adds or removes the `"hooks": "./hooks.json"` declaration in `plugin.json` to match the overlay; MUST NOT edit it manually.
 
+## Commit and Release Workflows
+
+- All commit or release work in this repository MUST start from the corresponding repo-local [commit entrypoint](.agents/skills/commit/SKILL.md) or [release entrypoint](.agents/skills/release/SKILL.md). Even when `misty-commit` or `misty-release` is invoked directly, MUST load the corresponding local entrypoint before executing the workflow and carry its delegation and project supplements forward. Reuse an already loaded local entrypoint rather than restarting delegation.
+- These local entrypoints explicitly adopt the default workflows of [misty-commit](skills/misty-commit/SKILL.md) and [misty-release](skills/misty-release/SKILL.md). Read the applicable source skill and its selected references; the local entrypoints are adapters, not independent workflows.
+- Keep local guidance limited to project inputs and required artifact/sync actions. Apply those supplements within the adopted workflow; MUST NOT duplicate its general rules or restart the local adapter after delegation. This explicit adoption enables the default references; independent project workflows elsewhere still follow the misty entrypoint's precedence rules.
+- Scope, authorization, and accurate result reporting remain governed by the adopted skill. Determine authorized operations from the current user instructions and existing explicit approval for the same scope; reuse that approval. Clarify only necessary unresolved decisions or conflicts before the affected step. If a required source skill cannot be read, stop and report the missing dependency rather than inventing a replacement workflow.
+
 ## Notes
 
 - Keep `SKILL.md` and Markdown under `references/` bilingual by the same rules as the root documents in [Document Structure](#document-structure), e.g. `SKILL.md`=`SKILL_ch.md`.
+- The [misty-commit integration reference](skills/misty-commit/references/remote-integration.md) and [misty-release integration reference](skills/misty-release/references/remote-integration.md) are intentionally duplicated so each skill ships independently. When changing either reference, MUST check both skills' English and Traditional Chinese copies, update all affected copies in the same change, and verify that the two English copies are byte-for-byte identical and the two Traditional Chinese copies are byte-for-byte identical.
 - Keep [README.md](README.md) project-level; MUST NOT list the skills it contains, because the list drifts from the frontmatter.
 - A document written only for a skill's maintainers MUST live under `docs/<skill-name>/`, not inside the skill directory.
 - Inside a skill directory, relative Markdown links MUST stay within that skill directory, because only that directory ships with the skill; name another skill in inline code instead, e.g. `write-md`.

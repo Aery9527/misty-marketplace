@@ -731,7 +731,13 @@ on a known limitation.
   which is what lets a path like `C:\Program Files\` end where it appears to. What
   reaches Claude is therefore the request's words in their order, rejoined with
   single spaces; the quotes that grouped them and any run of whitespace between
-  them do not survive.
+  them do not survive. Before `--`, exact standalone `--help` and `-h`
+  arguments after tokenization display the selected
+  companion subcommand's usage without Claude checks, a session or a job.
+  The `--` separator ends option parsing; `rescue -- --help` forwards the
+  literal `--help` request instead. This also applies to a single forwarded
+  argument string after tokenization. Multiple argv elements retain their
+  grouping; a help flag inside one multiword element remains request text.
 - **Codex-only model names** — `commands/rescue.md`, `agents/codex-rescue.md`.
   Upstream maps `spark` to a Codex model. Nothing on this side answers to that
   name, so it is refused with what to do instead rather than forwarded to a CLI

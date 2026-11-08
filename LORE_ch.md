@@ -33,9 +33,17 @@
     - overlay 只擁有它自己宣告的項目，且嚴禁包含 `.codex-plugin` 或 `skills`。
     - 同步腳本會依 overlay 新增或移除 `plugin.json` 的 `"hooks": "./hooks.json"` 宣告；嚴禁手動修改。
 
+## Commit 與 Release 流程
+
+- 本儲存庫的 commit 或 release 任務，一律必須從對應的 repo-local [commit 入口](.agents/skills/commit/SKILL.md)或 [release 入口](.agents/skills/release/SKILL.md)開始。即使直接呼叫 `misty-commit` 或 `misty-release`，執行流程前也必須載入對應的 local 入口，沿用其委派與專案補充。Local 入口已載入時直接沿用，不能重新啟動委派。
+- 這些 local 入口明確採用 [misty-commit](skills/misty-commit/SKILL.md) 與 [misty-release](skills/misty-release/SKILL.md) 的預設流程。讀取適用的來源 skill 及其選定參考文件；local 入口只負責轉接，不是獨立流程。
+- Local 指引只保留專案輸入及必要的產物／同步動作，在採用的流程內套用補充；嚴禁重複定義通用規則，或在委派後重新啟動 local 轉接入口。此明確採用會啟用預設參考文件；其他具有獨立專案流程的情境，仍依 misty 入口的優先規則處理。
+- 範圍、授權與如實回報結果仍依採用的 skill 執行。依本次使用者指示及既有相同範圍的明確授權判定可執行操作，並沿用該授權。在受影響步驟前，只釐清必要的未定決策或衝突。必要的來源 skill 無法讀取時，停止並回報缺少依賴，不能自行編造替代流程。
+
 ## 注意事項
 
 - `SKILL.md` 與 `references/` 底下的 Markdown 依照 [文件結構](#文件結構) 中根目錄文件的相同規則維持雙語，例如 `SKILL.md`=`SKILL_ch.md`。
+- [misty-commit 的整合指引](skills/misty-commit/references/remote-integration_ch.md)與 [misty-release 的整合指引](skills/misty-release/references/remote-integration_ch.md)刻意保留相同內容，讓每個 skill 可獨立發布。修改任一份時，必須檢查兩個 skill 的英文與繁體中文副本，在同一次變更中更新所有受影響副本，並驗證兩份英文逐位元一致、兩份繁體中文逐位元一致。
 - [README.md](README.md) 只寫專案層級內容；嚴禁列出包含的 skills，因為清單會與 frontmatter 漂移。
 - 只寫給 skill 維護者看的文件必須放在 `docs/<skill-name>/`，不放在 skill 目錄內。
 - skill 目錄內的相對 Markdown link 必須只指向該 skill 目錄內的內容，因為只有該目錄會隨 skill 一起發布；提到其他 skill 時改用 inline code 寫出名稱，例如 `write-md`。

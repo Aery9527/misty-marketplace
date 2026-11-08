@@ -3,38 +3,44 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "請幫這個 repo 做第一次 release。目前還沒有任何 version tag，請用 marketplace.json 目前的 version 建立第一版 release，並整理全部歷史 commit 成 release note。",
-      "expected_output": "載入 release skill，判斷這是首次 release，使用 marketplace.json 現有 version，建立繁體中文 release note 並說明會收錄全部歷史 commit，之後在 develop 提交、合併 main、打 tag。",
+      "prompt": "請幫這個 repo 準備首次 release，目前沒有任何版本 tag。請先推薦並確認初始版號，不要 push。",
+      "expected_output": "辨識 local release 只補充專案動作，讀取 misty-release 已採用的預設流程；參考 marketplace 的現有版號並確認初始版號。準備時更新 metadata.version、既有 README 版本連結與 release-note，執行同步及驗證，不自動建立 develop 或 push。",
       "files": []
     },
     {
       "id": 2,
-      "prompt": "幫我 cut 下一個 release。上一版之後有 feat 與 fix commit，請判斷版本、整理 release note，最後走 develop 合併 main 並打 tag。",
-      "expected_output": "根據 commit messages 推薦 minor version，先詢問使用者確認，再描述繁體中文 release note、README、marketplace.json、merge、tag、push 的完整流程。",
+      "prompt": "請為這個 repo 準備下一版。上一版之後同時有 feat 與 fix commit，但 feat 最後已被完整 revert；實際只剩相容修復。先提出版號建議。",
+      "expected_output": "依 misty-release 檢查完整訊息與淨 diff，推薦 patch 而非僅看 feat 推薦 minor；確認版號前不改動發布檔案。",
       "files": []
     },
     {
       "id": 3,
-      "prompt": "我要發版。這段期間有 BREAKING CHANGE，請幫我出 release note、決定版本並完成 release。",
-      "expected_output": "根據 BREAKING CHANGE 推薦 major version，先詢問使用者確認，再以繁體中文整理 release note 並執行 release workflow；不能直接默默定版。",
+      "prompt": "請為這個 repo 準備 release，目前 release-note 有 10 份已確認的版本 notes；新增本版後依採用的預設政策整理，不要 push。",
+      "expected_output": "沿用 release-note/<tag>.md 位置，採 misty 的10份保留政策而非舊5份政策；展示確切待清理清單並取得適用授權後才刪除。發布準備仍包含 marketplace、README、同步與驗證。",
       "files": []
     },
     {
       "id": 4,
-      "prompt": "幫我做 release，release-note 資料夾裡已經有很多舊版檔案，新的 release note 建好後只保留最後 5 份。",
-      "expected_output": "明確描述 release-note 會新增繁體中文的 vX.X.X.md，並刪除較舊檔案只保留最近 5 份。",
+      "prompt": "請為這個 repo 完整發布。整合時發生重試上限與可重試錯誤分類的衝突，兩項要求可同時保留。",
+      "expected_output": "依 misty 的遠端整合指引準備候選結果與針對性驗證，必須呼叫獨立 reviewer；未通過前不接受解法或 push/tag，不沿用舊 local release 一遇 merge conflict 就結束的流程。",
       "files": []
     },
     {
       "id": 5,
-      "prompt": "我要發版，但目前 repo 沒有 develop branch。請照既有規則完成 release。",
-      "expected_output": "先從 main 建立 develop，再在 develop 上處理 release；不能忽略 branch 前置條件。",
+      "prompt": "只為這個 repo 撰寫英文 release note 草稿，不要修改任何檔案或 Git 狀態。",
+      "expected_output": "沿用使用者明確的語言與草稿限制，使用 misty 成果導向 notes 指引；不更新 marketplace 或 README、不執行同步、不 commit/tag/push。",
       "files": []
     },
     {
       "id": 6,
-      "prompt": "我要發版，release note 直接用英文整理就好。",
-      "expected_output": "拒絕用英文 release note，改為說明此 repo 的 release note 必須使用繁體中文，並依既有 release workflow 繼續執行。",
+      "prompt": "已確認下一版為 v3.0.0，請準備本 repo 的發布檔案。假設第一次執行 Codex 同步失敗。",
+      "expected_output": "marketplace metadata.version 應為3.0.0，README與note對應v3.0.0；同步失敗時回報已完成與未完成步驟，不提交或發布不一致產物。修正後重跑同步及驗證，並依 misty 重驗最終內容。",
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "這個 repo 最近十筆提交是英文，但目前 local commit 與 release 已明確採用 misty 預設。請為已核准版本準備 release-preparation commit 的訊息草稿，不要寫檔或操作 Git。",
+      "expected_output": "依明確採用的 misty-commit 預設提供繁中 Conventional Commit 草稿，不以舊英文歷史覆蓋已採用的規則，也不對已決定的語言重問；不 stage、commit、tag 或 push。",
       "files": []
     }
   ]

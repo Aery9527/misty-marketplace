@@ -34,6 +34,106 @@ function isolatedEnv(binDir) {
   return buildEnv(binDir, { PLUGIN_DATA: makeTempDir(), CLAUDE_PLUGIN_DATA: "" });
 }
 
+// 說明必須在任何環境檢查、模型呼叫或 job 寫入之前返回。
+test("subcommand help prints usage without invoking Claude or creating state", () => {
+  const binDir = makeTempDir();
+  installFakeClaude(binDir, "ready");
+  const cwd = makeTempDir();
+  const argvFile = path.join(makeTempDir(), "argv.json");
+  const env = { ...isolatedEnv(binDir), FAKE_CLAUDE_ARGV_FILE: argvFile };
+  const commands = ["setup", "transfer", "review", "adversarial-review", "rescue", "rescue-resume-candidate", "status", "result", "cancel", "run-job"];
+
+  for (const command of commands) {
+    const helpArguments = [
+      ["--help"], ["-h"], ["--background --help"], ["--background -h"], ["--help", "--help=false"]
+    ];
+    if (command === "rescue") {
+      helpArguments.push(
+        ["explain", "why", "grep", "-h", "drops", "filenames"],
+        ["explain why grep -h drops filenames"],
+        ["add a --help flag to the CLI"]
+      );
+    }
+    for (const args of helpArguments) {
+      const result = runCompanion([command, ...args], { cwd, env });
+      assert.equal(result.status, 0, `${command} ${args}: ${result.stderr}`);
+      assert.match(result.stdout, /^Usage:/);
+      assert.ok(result.stdout.includes(`claude-companion.mjs ${command} `));
+      assert.match(result.stdout, /rescue -- --help/);
+      assert.equal(result.stderr, "");
+      assert.equal(fs.existsSync(argvFile), false, "help must not invoke even Claude's setup checks");
+      assert.deepEqual(fs.readdirSync(env.PLUGIN_DATA), []);
+      assert.deepEqual(fs.readdirSync(cwd), []);
+    }
+  }
+});
+
+test("rescue preserves option values and requests that are not exact help flags", () => {
+  const binDir = makeTempDir();
+  installFakeClaude(binDir, "ready");
+  const cwd = makeWorkspace();
+  const cases = [
+    { args: ["--model=--help", "inspect the parser"], prompt: "inspect the parser" },
+    ...["--h", "-help", "--help=x"].map((token) => ({ args: [token], prompt: token }))
+  ];
+
+  for (const { args, prompt } of cases) {
+    const promptFile = path.join(makeTempDir(), "prompt.txt");
+    const result = runCompanion(["rescue", ...args], {
+      cwd,
+      env: { ...isolatedEnv(binDir), FAKE_CLAUDE_PROMPT_FILE: promptFile }
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(fs.readFileSync(promptFile, "utf8"), `${prompt}\n`);
+  }
+});
+
+// 分隔符後的旗標是請求文字，不能再作為 help 或其他 bridge 選項。
+test("rescue forwards literal help flags after -- in argv and forwarded strings", () => {
+  const binDir = makeTempDir();
+  installFakeClaude(binDir, "ready");
+  const cwd = makeWorkspace();
+
+  const requests = [
+    ["--", "--help"], ["--", "-h"], ["-- --help"], ["-- -h"],
+    ["--", "explain", "--help", "--background"],
+    ["-- explain why grep -h drops filenames"],
+    ["--", "add", "a", "--help", "flag", "to", "the", "CLI"]
+  ];
+  for (const args of requests) {
+    const promptFile = path.join(makeTempDir(), "prompt.txt");
+    const result = runCompanion(["rescue", ...args], {
+      cwd,
+      env: { ...isolatedEnv(binDir), FAKE_CLAUDE_PROMPT_FILE: promptFile }
+    });
+    assert.equal(result.status, 0, result.stderr);
+    const expected = args.join(" ").slice(3);
+    assert.equal(fs.readFileSync(promptFile, "utf8"), `${expected}\n`);
+    assert.match(result.stdout, /Claude session:/);
+  }
+});
+
+test("rescue preserves grouped request arguments beside bridge flags", () => {
+  const binDir = makeTempDir();
+  installFakeClaude(binDir, "ready");
+  const cwd = makeWorkspace();
+  const cases = [
+    { args: ["--read-only", "explain why grep -h drops filenames"], prompt: "explain why grep -h drops filenames" },
+    { args: ["--fresh", "-- --help"], prompt: "-- --help" }
+  ];
+
+  for (const { args, prompt } of cases) {
+    const promptFile = path.join(makeTempDir(), "prompt.txt");
+    const result = runCompanion(["rescue", ...args], {
+      cwd,
+      env: { ...isolatedEnv(binDir), FAKE_CLAUDE_PROMPT_FILE: promptFile }
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.doesNotMatch(result.stdout, /^Usage:/);
+    assert.equal(fs.readFileSync(promptFile, "utf8"), `${prompt}\n`);
+  }
+});
+
 async function waitForListedJob(jobFile, jobId, predicate, timeoutMs = 20000) {
   const deadline = Date.now() + timeoutMs;
   let lastJob = null;
@@ -272,10 +372,32 @@ test("review refuses focus text and names the command that takes it", () => {
   installFakeClaude(binDir, "ready");
   const cwd = makeDirtyWorkspace();
 
-  const result = runCompanion(["review", "check the error handling"], { cwd, env: isolatedEnv(binDir) });
+  for (const options of [[], ["--base", "main", "--cwd", makeWorkspace()]]) {
+    const result = runCompanion(["review", ...options, "check the error handling"], { cwd, env: isolatedEnv(binDir) });
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /Use `\/claude-adversarial-review` with the same bridge options/);
+    assert.match(result.stderr, /put the `--` separator before the focus text/);
+    assert.doesNotMatch(result.stderr, /check the error handling/);
+  }
+});
 
-  assert.equal(result.status, 1);
-  assert.match(result.stderr, /\/claude-adversarial-review check the error handling/);
+test("adversarial review forwards literal help focus", () => {
+  const binDir = makeTempDir();
+  installFakeClaude(binDir, "ready");
+  const cwd = makeDirtyWorkspace();
+  const focusArguments = [["--", "check", "-h", "handling"], ["-- check -h handling"]];
+
+  for (const args of focusArguments) {
+    const promptFile = path.join(makeTempDir(), "prompt.txt");
+    const result = runCompanion(["adversarial-review", ...args], {
+      cwd,
+      env: { ...isolatedEnv(binDir), FAKE_CLAUDE_PROMPT_FILE: promptFile }
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.doesNotMatch(result.stdout, /^Usage:/);
+    assert.match(result.stdout, /^# Claude Adversarial Review/);
+    assert.match(fs.readFileSync(promptFile, "utf8"), /check -h handling/);
+  }
 });
 
 test("adversarial review renders the structured findings Claude returned", () => {

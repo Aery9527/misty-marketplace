@@ -11,8 +11,9 @@
 
 ## Required Output Spec
 
+- MUST NOT use a table of contents, back-to-top links, or same-document heading-anchor links. Organize content with headings and refer to sections by their heading text.
 - MUST NOT use Markdown tables; use bullet lists or numbered steps instead.
-- MUST NOT use Mermaid unless the user explicitly requests Mermaid diagrams or syntax for the AI-agent document. When requested, MUST load the [Mermaid guide](mermaid-guide.md).
+- Mermaid is disabled by default unless the user explicitly requests Mermaid diagrams or syntax for the AI-agent document. When requested, MUST load the [Mermaid guide](mermaid-guide.md).
 - Guidelines MUST be direct and unambiguous. For Traditional Chinese AI-agent documents, prefer `必須` / `應` / `嚴禁` / explicit ordering.
 - Avoid lengthy examples; keep only necessary short examples, counterexamples, or decision sentences.
 

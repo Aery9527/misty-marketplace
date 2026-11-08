@@ -12,6 +12,10 @@ constraints live here as instructions rather than as declared metadata.
 
 ## Arguments
 
+- `--help`, `-h` — exact standalone arguments after tokenization, before `--`,
+  display this subcommand's usage without checking Claude or starting a job.
+- `--` — stop interpreting options. To include literal help flags in the focus,
+  use `/claude-adversarial-review -- check -h handling`.
 - `--base <ref>` — review the commits between `<ref>` and `HEAD`.
 - `--scope auto|working-tree|branch` — choose the review target. `auto` is the
   default: it reviews the working tree when it is dirty, otherwise the branch.
@@ -22,7 +26,10 @@ constraints live here as instructions rather than as declared metadata.
   makes the choice visible; it cannot be combined with `--background`.
 - `--json` — return the raw payload instead of rendered Markdown.
 - `--cwd <path>` — review a repository other than the current directory.
-- Any remaining text is the user's focus area and is passed through unchanged.
+- After bridge options are removed, the remaining words are the user's focus,
+  preserved in order and rejoined with single spaces. Grouping double quotes
+  and runs of whitespace between arguments are not retained. A single forwarded
+  string is tokenized; multiple argv elements retain their grouping.
 
 ## Workflow
 
@@ -41,7 +48,8 @@ constraints live here as instructions rather than as declared metadata.
 - This command is review-only. MUST NOT fix anything it reports, MUST NOT apply
   a patch, and MUST NOT offer to start making changes in the same turn.
 - MUST NOT soften the adversarial framing and MUST NOT rewrite the user's focus
-  text. Pass it through as the user wrote it.
+  text. Preserve its words after bridge option parsing, subject to the
+  tokenization described above. MUST NOT promise byte-for-byte forwarding.
 - Without `--background` the review runs in the foreground and the command
   returns when it is finished. MUST NOT claim such a review is running in the
   background.

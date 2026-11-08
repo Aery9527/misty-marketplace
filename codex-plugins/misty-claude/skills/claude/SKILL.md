@@ -32,6 +32,16 @@ work and obtains a final review. Long-running work is tracked as a job.
 
 ## Rules
 
+- A standalone `--help` or `-h` argument before `--`, after tokenization,
+  displays the selected runtime subcommand's
+  usage without checking Claude, starting a session or creating a job. Forward
+  help directly; MUST NOT ask for request text or a resume choice first.
+  Use `--` before literal request flags, e.g. `/claude-rescue -- --help`;
+  quoting a help flag alone does not make it request text. A single forwarded
+  string is tokenized; multiple argv elements retain their grouping, so a help
+  flag inside one multiword element is request text. Prefer forwarding slash
+  command text and any added bridge flags together as one string. Use
+  `/claude-rescue -- explain why grep -h drops filenames` to forward that question.
 - For a standalone entry-point invocation, MUST return the runtime's stdout to
   the user exactly as-is. MUST NOT paraphrase, summarise, or add commentary
   before or after it.
