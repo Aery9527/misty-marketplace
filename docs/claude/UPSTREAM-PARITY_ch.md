@@ -587,7 +587,12 @@ protocol 測試不同。
   反斜線因為路徑裡會有——沒有
   任何東西可以跳脫引號，這正是 `C:\Program Files\` 這種路徑能在看起來結束的地方結束的原因。
   因此抵達 Claude 的是該請求的「詞」及其順序，以單一空白重新接起；分組用的引號與詞之間的
-  連續空白則不會留存。
+  連續空白則不會留存。Tokenization 後，`--` 之前完全等於 `--help` 或 `-h`
+  的獨立參數會顯示所選 companion 子指令
+  的用法，不檢查 Claude、啟動 session 或建立 job。`--` 分隔符會結束選項解析；
+  `rescue -- --help` 則會把字面 `--help` 當成請求轉交。單一轉交參數字串在
+  tokenization 後也遵循相同規則。多個 argv 元素保留分組；一個多字詞元素內的 help
+  旗標仍是請求文字。
 - **Codex 專屬的模型名稱** — `commands/rescue.md`、`agents/codex-rescue.md`。上游把 `spark`
   映射到一個 Codex 模型。此處沒有任何東西回應那個名字，因此會連同「該怎麼做」一起拒絕，
   而不是把它轉交給一個只會回報未知模型的 CLI。

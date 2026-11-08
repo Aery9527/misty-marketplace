@@ -15,6 +15,16 @@ constraints live here as instructions rather than as declared metadata.
 
 ## Arguments
 
+- `--help`, `-h` — as exact standalone arguments after tokenization, display
+  this subcommand's usage and return without checking
+  Claude, starting a session or creating a job.
+- `--` — stop interpreting options. Everything after it is request text,
+  including `--help` and `-h`: `/claude-rescue -- --help` sends `--help` to
+  Claude. Quoting a help flag alone does not bypass option parsing. A single
+  forwarded string is tokenized; multiple argv elements retain their grouping,
+  so a help flag inside one multiword element is request text. For a question
+  containing standalone help flags, use
+  `/claude-rescue -- explain why grep -h drops filenames` to forward that question.
 - `--background` — queue the run in a detached process and return at once with
   its job id. Without it the run happens in the foreground.
 - `--wait` — state the foreground explicitly. It is the default, so this only
@@ -34,7 +44,8 @@ constraints live here as instructions rather than as declared metadata.
 - `--effort <level>` — run at a specific reasoning effort.
 - `--json` — return the raw payload instead of rendered Markdown.
 - `--cwd <path>` — work in a repository other than the current directory.
-- Everything else is the user's request. The runtime splits the forwarded string
+- Everything else is the user's request, except help flags before `--`.
+  The runtime splits the forwarded string
   on whitespace, treats a quote as grouping until its matching quote, takes a
   backslash and an apostrophe as ordinary characters, and refuses a double quote
   that never closes, then rejoins the remainder with single spaces. So the words of the request and their order survive; runs of whitespace
@@ -42,13 +53,18 @@ constraints live here as instructions rather than as declared metadata.
 
 ## Workflow
 
-1. If the user supplied no request at all, ask what Claude should investigate,
+1. If an exact standalone `--help` or `-h` argument occurs before `--` after
+   tokenization, run the companion's `rescue`
+   subcommand with the supplied arguments and return stdout verbatim. MUST NOT
+   check for a resumable session or ask for request text or a resume choice.
+   Stop after returning help.
+2. If the user supplied no request at all, ask what Claude should investigate,
    fix, or continue before running anything. MUST NOT invent one, and MUST ask
    even when the user asked to continue — the runtime refuses an empty request
    whatever else was passed with it.
    If the user asked for diagnosis, review or research without edits, add
-   `--read-only`.
-2. If the user named none of `--resume`, `--resume-session` or `--fresh`, check
+   `--read-only` before any `--` separator.
+3. If the user named none of `--resume`, `--resume-session` or `--fresh` before `--`, check
    whether there is something to continue — always, not only when the request
    reads like a continuation:
 
@@ -65,18 +81,23 @@ constraints live here as instructions rather than as declared metadata.
    - `Continue the recorded Claude session`
    - `Start a new Claude session`
 
-   Add `--resume` or `--fresh` to the forwarded arguments according to the
+   Add `--resume` or `--fresh` before any `--` separator according to the
    answer. When it reports `available: false`, do not ask and do not add either
    flag.
-3. Run the companion, forwarding the user's arguments unchanged:
+4. Run the companion, forwarding the user's arguments unchanged:
 
    ```bash
    node "${PLUGIN_ROOT}/scripts/claude-companion.mjs" rescue <arguments>
    ```
 
-4. Return the command's stdout verbatim. Do not paraphrase it, do not summarise
+   Prefer one raw argument string, with any added bridge flags inside that same
+   string before `--`. Alternatively, pass a complete argv list tokenized by
+   the runtime grammar above. MUST NOT add separate bridge flags beside an
+   unsplit raw slash-command string; that prevents the runtime from splitting it.
+
+5. Return the command's stdout verbatim. Do not paraphrase it, do not summarise
    it, and do not add commentary before or after it.
-5. Do not run any other command in the same turn.
+6. Do not run any other command in the same turn.
 
 ## Rules
 

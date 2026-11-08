@@ -116,8 +116,7 @@ function nodeStatus() {
   };
 }
 
-const USAGE = [
-  "Usage:",
+const COMMAND_USAGE = [
   "  node scripts/claude-companion.mjs setup [--json] [--enable-review-gate|--disable-review-gate] [--cwd <path>]",
   "  node scripts/claude-companion.mjs transfer [--json] [--source <jsonl>] [--cwd <path>]",
   "  node scripts/claude-companion.mjs review [--json] [--wait|--background] [--base <ref>] [--scope auto|working-tree|branch] [--model <model>] [--cwd <path>]",
@@ -127,18 +126,22 @@ const USAGE = [
   "  node scripts/claude-companion.mjs status [job-id] [--json] [--all] [--wait] [--timeout-ms <ms>] [--poll-interval-ms <ms>] [--cwd <path>]",
   "  node scripts/claude-companion.mjs result [job-id] [--json] [--cwd <path>]",
   "  node scripts/claude-companion.mjs cancel [job-id] [--json] [--cwd <path>]",
-  "  node scripts/claude-companion.mjs run-job --job-id <id> [--cwd <path>]",
-  ""
-].join("\n");
+  "  node scripts/claude-companion.mjs run-job --job-id <id> [--cwd <path>]"
+];
+const HELP_USAGE = "Use --help or -h before -- for help without running the command.\nUse -- before request text to pass literal flags, e.g. rescue -- --help.\n";
+const USAGE = ["Usage:", ...COMMAND_USAGE, "", HELP_USAGE].join("\n");
 
 // A Codex command forwards its arguments as one raw string, so a single positional
 // that still contains flags is re-split before parsing.
+function tokenizeCommandInput(argv) {
+  return argv.length === 1 && typeof argv[0] === "string" && /[\s"']/.test(argv[0])
+    ? splitRawArgumentString(argv[0])
+    : argv;
+}
+
+// help 判斷與實際執行必須使用相同的轉交字串文法。
 function parseCommandInput(argv, config = {}) {
-  const tokens =
-    argv.length === 1 && typeof argv[0] === "string" && /[\s"']/.test(argv[0])
-      ? splitRawArgumentString(argv[0])
-      : argv;
-  return parseArgs(tokens, config);
+  return parseArgs(tokenizeCommandInput(argv), config);
 }
 
 function resolveCommandCwd(options) {
@@ -290,7 +293,7 @@ function buildReviewRequest(kind, options, positionals) {
   const focusText = positionals.join(" ").trim();
   if (kind === "review" && focusText) {
     throw new Error(
-      `\`/claude-review\` runs the built-in reviewer and takes no focus text. Retry with \`/claude-adversarial-review ${focusText}\`.`
+      "`/claude-review` runs the built-in reviewer and takes no focus text. Use `/claude-adversarial-review` with the same bridge options and put the `--` separator before the focus text."
     );
   }
 
@@ -1108,6 +1111,17 @@ async function handleCancel(argv) {
 
 async function main() {
   const [subcommand, ...argv] = process.argv.slice(2);
+
+  const commandUsage = COMMAND_USAGE.find((line) => line.startsWith(`  node scripts/claude-companion.mjs ${subcommand} `));
+  if (commandUsage) {
+    const tokens = tokenizeCommandInput(argv);
+    const separator = tokens.indexOf("--");
+    const optionTokens = separator === -1 ? tokens : tokens.slice(0, separator);
+    if (optionTokens.some((token) => token === "--help" || token === "-h")) {
+      process.stdout.write(`Usage:\n${commandUsage}\n\n${HELP_USAGE}`);
+      return;
+    }
+  }
 
   switch (subcommand) {
     case "setup":

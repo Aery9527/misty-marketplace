@@ -26,6 +26,14 @@ description: >-
 
 ## 規則
 
+- Tokenization 後，`--` 之前完全等於 `--help` 或 `-h` 的獨立參數會顯示所選 runtime
+  子指令的用法，不檢查 Claude、
+  啟動 session 或建立 job。必須直接轉交 help，嚴禁先詢問請求文字或續接選擇。
+  要把旗標當成請求文字時，在前面加上 `--`，例如 `/claude-rescue -- --help`；
+  只用引號包住 help 旗標不會讓它變成請求文字。單一轉交字串會被切分；多個 argv 元素
+  則保留分組，因此一個多字詞元素內的 help 旗標仍是請求文字。應優先把 slash command
+  文字與新增的 bridge 旗標一起放入同一字串轉交。要轉交該類問題，使用
+  `/claude-rescue -- explain why grep -h drops filenames`。
 - 對獨立進入點執行，必須把 runtime 的 stdout 原樣回傳給使用者。嚴禁改寫、摘要，或在
   前後加上評論。
 - 在協作審查流程中，Claude 的中間輸出是審查證據，不是最終回應。Codex 必須檢視內容、
