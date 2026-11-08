@@ -6,6 +6,7 @@
 
 1. 確認發布單位、候選 commit 與所選遠端的實際 default branch。依[版號推薦](#版號推薦)找出前一版，再閱讀截至候選版本的完整 commit message 與 diff，清點最終交付的淨變更；沒有可發布變更時，不建立 release。
 2. 透過入口檔的授權確認，提議整合至該 default branch 發布。已在 default branch 時，無須合併自身。
+3. 本地與遠端變更需要整合時，讀取[遠端整合與衝突](remote-integration_ch.md)，即使 Git 合併沒有衝突標記也適用。整合後依[發布成果](#發布成果)重新驗證實際發布內容、版號、notes 與 tag 目標。
 
 ## 版號推薦
 

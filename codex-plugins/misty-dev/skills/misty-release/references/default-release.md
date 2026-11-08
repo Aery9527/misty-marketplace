@@ -6,6 +6,7 @@
 
 1. Confirm the release unit, candidate commit, and selected remote's actual default branch. Determine the previous release using [Version Recommendation](#version-recommendation), then read full commit messages and diffs through the candidate to identify net delivered changes; if there are none, do not create a release.
 2. Propose integration and release on that default branch through the entrypoint's authorization check. When already on the default branch, no self-merge is needed.
+3. When local and remote changes need integration, read [Remote Integration and Conflicts](remote-integration.md), including when Git merges without conflict markers. After integration, revalidate the actual release content, version, notes, and tag target under [Release Result](#release-result).
 
 ## Version Recommendation
 

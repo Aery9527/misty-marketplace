@@ -19,6 +19,7 @@
 
 - When making a commit, if the latest commit is confirmed unpushed and the new changes continue the same intent, offer to amend it; amend only with the user's approval. If publication status is uncertain, the commit was pushed, or the intent differs, use a new commit. Reuse explicit approval to amend within its scope.
 - After completing the requested commits or amendments, ask whether to push unless the user already authorized or declined it. During an ongoing release workflow, return control to that workflow so it can complete release preparation and obtain any missing publication approval together; do not push independently or repeat its authorization questions.
+- When remote advancement requires integration before an authorized push, read [Remote Integration and Conflicts](remote-integration.md). Apply its behavior-based assessment even if Git merges without conflict markers.
 - Report the created commit SHA and delivered intent. A later release can combine the full messages and actual diffs into outcome-focused notes and a version recommendation; ordinary commits MUST NOT create tags or trigger a release on their own.
 
 ## Examples
