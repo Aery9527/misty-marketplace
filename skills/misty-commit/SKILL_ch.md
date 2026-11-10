@@ -1,7 +1,10 @@
 ---
 name: misty-commit
 description: >-
-  依目前 context 與專案 skill 準備或審查提交邊界及訊息；專案明確採用或未定義 commit 指引時，使用基本流程。
+  依專案指引準備或審查 Git commit、提交邊界與訊息。當使用者要求提交變更、暫存檔案、
+  amend 或拆分 commit、選擇提交邊界、撰寫或審查 commit message 時使用，
+  即使只說「commit」「提交」或「幫我提交」也適用。
+  代理在其他已授權任務中準備執行 commit 時也應使用，包括完成程式碼或文件變更後的提交。
 ---
 
 # Misty Commit
