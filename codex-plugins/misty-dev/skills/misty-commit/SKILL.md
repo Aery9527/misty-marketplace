@@ -1,9 +1,12 @@
 ---
 name: misty-commit
 description: >-
-  Prepare or review commit boundaries and messages using the current context and
-  project skills; use the basic workflow when explicitly adopted or when no commit
-  guidance is defined.
+  Prepare or review Git commits, their boundaries, and messages using project
+  guidance. Use when the user asks to commit changes, stage files, amend or split
+  a commit, choose commit boundaries, or write or review a commit message, even
+  if they only say "commit", "提交", or "幫我提交". Also use before the agent makes
+  a commit as part of another authorized task, including after finishing a code
+  or documentation change.
 ---
 
 # Misty Commit
