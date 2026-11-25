@@ -100,7 +100,8 @@ flowchart TD
 - 每個宣告的 skill 目錄都必須存在。
 - 每個目標 [`codex-plugins/<plugin>`](../codex-plugins/) 目錄都必須事先建立。
 - 每個目標 [`codex-plugins/<plugin>/.codex-plugin/plugin.json`](../codex-plugins/) 都必須已存在。
-- 環境中必須有 Node.js 22 以上的 `node`，用於穩定格式化 JSON 與執行同步後驗證；格式化使用 `JSON.rawJSON` 保留數字的原始寫法。
+- 環境中必須有 Node.js 22 以上的 `node`，用於格式化 JSON 與執行同步後驗證。
+    - 格式化使用 `JSON.rawJSON` 保留 PowerShell 序列化後傳給 Node.js 的數字寫法。
 - 若透過 `.sh` wrapper 執行，環境中必須有 `pwsh`。
 
 ### 用法
@@ -114,6 +115,8 @@ flowchart TD
 ```
 
 ### 失敗行為
+
+- 同步須通過 Node.js 版本與 JSON 格式化能力檢查，才會開始寫入產物。
 
 這個腳本採用 fail fast，而不是靜默跳過錯誤。這個取捨是合理的，因為它維
 護的是封裝產物；若腳本默默容錯，只會把壞掉的 plugin 定義包進產物裡。
