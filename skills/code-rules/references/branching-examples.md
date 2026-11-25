@@ -329,6 +329,8 @@ func (service *ShippingService) ShippingFee(order ShippingOrder) (uint64, error)
 }
 ```
 
+- The service owns the delivery methods, so selection stays in the `switch`. The algorithms use different rates, and more algorithms are expected. Separate functions can isolate the calculations. Here a strategy also keeps each algorithm's rates with its calculation. `flatRate` keeps the delivery fee, and `perKilogram` keeps the base fee and the price per kilogram. Once it selects an algorithm, the service calls it through the same `Fee(kilograms)` contract.
+
 - After: the same settings create the private strategies, and the selecting responsibility stays in the service; the caller provides the existing order data.
 
 ```go
@@ -376,8 +378,8 @@ func (policy perKilogram) Fee(kilograms uint64) (uint64, error) {
 
 // ShippingService calculates shipping fees from the configured rates.
 type ShippingService struct {
-	flat   shippingPolicy // Pricing strategy of the flat rate.
-	weight shippingPolicy // Pricing strategy of charging by weight.
+	flat   flatRate    // Pricing strategy of the flat rate.
+	weight perKilogram // Pricing strategy of charging by weight.
 }
 
 // NewShippingService creates a shipping fee service from the rate settings.
@@ -409,6 +411,7 @@ func (service *ShippingService) ShippingFee(order ShippingOrder) (uint64, error)
 ```
 
 - Both create the service with `NewShippingService(config)` and run it with `service.ShippingFee(order)`. The public types, the way of creation, the input meanings, the results, and the errors all stay the same. The strategies are an implementation detail.
+- A zero-value `ShippingService` returns `0, nil` for either known delivery method before and after the change.
 
 - With `FlatCents` `50`, `PerKilogramCents` `20`, and `WeightBaseCents` `0`, a `"flat"` order of three kilograms returns `50, nil` before and after, and a `"weight"` order of three kilograms returns `60, nil`. At zero kilograms they return `50, nil` and `0, nil`. When the base fee of charging by weight is `10`, the results of charging by weight above become `70, nil` and `10, nil`.
 

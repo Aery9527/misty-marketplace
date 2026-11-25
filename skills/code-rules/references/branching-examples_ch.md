@@ -329,6 +329,8 @@ func (service *ShippingService) ShippingFee(order ShippingOrder) (uint64, error)
 }
 ```
 
+- 配送方式由服務管理，因此保留 `switch` 選擇分支。各演算法使用不同的費率，後續還會新增演算法。具名函式可以分開各項計算。這裡採用策略，也讓每種演算法各自保存計算所需的費率。`flatRate` 保存每次配送的費用，`perKilogram` 保存基本費和每公斤費用。服務選定演算法後，統一透過 `Fee(kilograms)` 契約呼叫。
+
 - 調整後：以相同的設定建立私有的策略，選擇責任仍在服務內；呼叫端提供既有的訂單資料。
 
 ```go
@@ -376,8 +378,8 @@ func (policy perKilogram) Fee(kilograms uint64) (uint64, error) {
 
 // ShippingService 依設定的費率計算運費。
 type ShippingService struct {
-	flat   shippingPolicy // 固定費率的計價策略。
-	weight shippingPolicy // 依重量計費的計價策略。
+	flat   flatRate    // 固定費率的計價策略。
+	weight perKilogram // 依重量計費的計價策略。
 }
 
 // NewShippingService 依費率設定建立運費計算服務。
@@ -409,6 +411,7 @@ func (service *ShippingService) ShippingFee(order ShippingOrder) (uint64, error)
 ```
 
 - 前後都以 `NewShippingService(config)` 建立，並以 `service.ShippingFee(order)` 執行。公開型別、建立方式、輸入含意、結果與錯誤均維持相同。策略屬於實作細節。
+- 零值 `ShippingService` 對兩種已知的配送方式都回傳 `0, nil`，調整前後一致。
 
 - 設定 `FlatCents` 為 `50`、`PerKilogramCents` 為 `20`、`WeightBaseCents` 為 `0` 時，三公斤的 `"flat"` 訂單前後均回傳 `50, nil`，三公斤的 `"weight"` 訂單均回傳 `60, nil`。零公斤時分別回傳 `50, nil` 與 `0, nil`。若依重量計費的起始費為 `10`，上述重量計費結果則為 `70, nil` 與 `10, nil`。
 
