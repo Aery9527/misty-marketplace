@@ -174,6 +174,23 @@ test('list-planned ignores the marker in prose, an image, and a link outside the
   assert.deepEqual(plannedOf('[A [x]](a.md) (planned)\n'), []);
 });
 
+test('list-planned 保留路徑中的 U+FEFF 並排除含空白的路徑', () => {
+  const content = [
+    '[A](a\uFEFFb.md) (planned)',
+    '[B](a\u0085b.md) (planned)',
+    '[C](a\u001Cb.md) (planned)',
+    '[D](a\u00A0b.md) (planned)',
+  ].join('\n');
+
+  assert.deepEqual(plannedOf(content), [{ line: 1, target: 'a\uFEFFb.md' }]);
+});
+
+test('list-planned 以相同空白字元集辨識標記前的間隔', () => {
+  const content = '[A](a.md)\u0085(planned)\n[B](b.md)\uFEFF(planned)\n';
+
+  assert.deepEqual(plannedOf(content), [{ line: 1, target: 'a.md' }]);
+});
+
 test('list-planned prints the file, the line, and the target', () => {
   withDirectory((directory) => {
     write(directory, 'sd-a.md', '[A](a.md) (planned)\n');

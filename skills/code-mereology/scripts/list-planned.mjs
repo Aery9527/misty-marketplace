@@ -22,7 +22,8 @@ import { readLines } from './read-lines.mjs';
 // An inline Markdown link followed by the marker. The required opening bracket keeps a
 // stray fragment from matching, and the lookbehind keeps image syntax out. No title is
 // accepted, so the destination is the whole content of the parentheses.
-const PLANNED = /(?<!!)\[[^\][]*\]\((?<target>[^)\s]+)\)\s*\(planned\)/g;
+// 空白包含 Unicode White_Space 與 U+001C 至 U+001F，沿用 Python 版的比對行為。
+const PLANNED = /(?<!!)\[[^\][]*\]\((?<target>[^)\p{White_Space}\u001C-\u001F]+)\)[\p{White_Space}\u001C-\u001F]*\(planned\)/gu;
 
 /**
  * Finds every planned link in one file.
