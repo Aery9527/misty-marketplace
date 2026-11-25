@@ -1,4 +1,4 @@
-// Tests of the scripts of the code-mereology skill; run them with `node --test scripts/tests/`.
+// 驗證 code-mereology 隨附的腳本。執行 `node --test "scripts/tests/*.test.mjs"`。
 
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';

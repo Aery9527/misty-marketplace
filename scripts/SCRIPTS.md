@@ -150,7 +150,7 @@ node .\scripts\verify-codex-plugins.mjs
 - [`tests/verify-codex-plugins.test.mjs`](tests/verify-codex-plugins.test.mjs) 測試本腳本；[`tests/code-mereology-scripts.test.mjs`](tests/code-mereology-scripts.test.mjs) 測試 skill `code-mereology` 隨附的腳本，它們是維護用的測試，所以不放在 skill 目錄內。
 
 ```powershell
-node --test .\scripts\tests\
+node --test "scripts/tests/*.test.mjs"
 ```
 
 ### 失敗行為

@@ -1,4 +1,4 @@
-// Tests of scripts/verify-codex-plugins.mjs; run them with `node --test scripts/tests/`.
+// 驗證 scripts/verify-codex-plugins.mjs。執行 `node --test "scripts/tests/*.test.mjs"`。
 
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
