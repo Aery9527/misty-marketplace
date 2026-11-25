@@ -138,7 +138,7 @@ What must pass before a row in that area may be marked `done`.
 | rendering | `codex-plugin/tests/render.test.mjs` |
 | the Claude session client | `codex-plugin/tests/claude-cli.test.mjs`, `codex-plugin/tests/stream-protocol.test.mjs` |
 | session transfer resumability | deterministic `codex-plugin/tests/session-transfer.test.mjs` coverage plus a real two-process probe: create through `transfer`, resume the returned Claude session in another process, and recover an exact provenance token |
-| static assets (prompts, schemas, licence, manifest) | `scripts/sync-codex-plugins.ps1` completes and `scripts/verify_codex_plugins.py` passes |
+| static assets (prompts, schemas, licence, manifest) | `scripts/sync-codex-plugins.ps1` completes and `scripts/verify-codex-plugins.mjs` passes |
 | commands, agents, skills (prose) | reviewed against the upstream file they map to; no automated gate |
 | hooks | deterministic hook tests plus the interactive TUI probe in [Host Verification](#host-verification) |
 

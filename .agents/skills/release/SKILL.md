@@ -20,5 +20,5 @@ description: >-
 1. 版號確認後，將 `.claude-plugin/marketplace.json` 的 `metadata.version` 更新為選定版號，值不含 tag 的 `v` 前綴。
 2. 將 `README.md` 既有的 `Current version` 文字與連結更新至本次 tag 及 release note。
 3. 執行 `scripts/sync-codex-plugins.ps1` 或 `scripts/sync-codex-plugins.sh`，產生 Codex marketplace、套件內容與 plugin manifests；嚴禁手動修改同步產物。
-4. 提交發布準備內容前，執行 `python scripts/verify_codex_plugins.py`，並核對 marketplace 的來源版號、所有 Codex plugin manifest 的 `version`、README 與 note 的版號一致。檢查失敗時，不提交或發布。
+4. 提交發布準備內容前，執行 `node scripts/verify-codex-plugins.mjs`，並核對 marketplace 的來源版號、所有 Codex plugin manifest 的 `version`、README 與 note 的版號一致。檢查失敗時，不提交或發布。
 5. 整合或修正最終發布內容後，若版號或同步輸入改變，重做相應更新與同步，再對最終內容執行上述驗證；依 `misty-release` 完成最終範圍、版號與 tag 驗證。

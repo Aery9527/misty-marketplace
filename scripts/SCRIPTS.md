@@ -21,7 +21,7 @@
   [`.claude-plugin/marketplace.json`](../.claude-plugin/marketplace.json)，只有
   Codex 能安裝的宣告在
   [`.agents/plugins/codex-only-bundles.json`](../.agents/plugins/codex-only-bundles.json)。
-- [`verify_codex_plugins.py`](verify_codex_plugins.py)：驗證同步產物與 source 一致。
+- [`verify-codex-plugins.mjs`](verify-codex-plugins.mjs)：驗證同步產物與 source 一致。
 
 [Back to top](#quick-navigation)
 
@@ -51,7 +51,7 @@ flowchart TD
 | ------ | ---- | -------- |
 | [`sync-codex-plugins.ps1`](sync-codex-plugins.ps1) | 同步 [`.claude-plugin/marketplace.json`](../.claude-plugin/marketplace.json) 與 [`.agents/plugins/codex-only-bundles.json`](../.agents/plugins/codex-only-bundles.json) 到 [`.agents/plugins/marketplace.json`](../.agents/plugins/marketplace.json) 與 [`codex-plugins/*/skills`](../codex-plugins/) | 任何 skill、plugin 分組或 Codex plugin package 結構有變動時 |
 | [`sync-codex-plugins.sh`](sync-codex-plugins.sh) | [`sync-codex-plugins.ps1`](sync-codex-plugins.ps1) 的 shell wrapper | 在 macOS、Linux 或 Git Bash 上觸發同步時 |
-| [`verify_codex_plugins.py`](verify_codex_plugins.py) | 驗證 [`codex-plugins/*/skills`](../codex-plugins/) 是否與 source [`skills/`](../skills/) 完全一致 | release 前，或懷疑同步產物殘留/漏同步時 |
+| [`verify-codex-plugins.mjs`](verify-codex-plugins.mjs) | 驗證 [`codex-plugins/*/skills`](../codex-plugins/) 是否與 source [`skills/`](../skills/) 完全一致 | release 前，或懷疑同步產物殘留/漏同步時 |
 
 [Back to top](#quick-navigation)
 
@@ -89,7 +89,7 @@ flowchart TD
    留英文主檔。
 6. 重寫 [`.agents/plugins/marketplace.json`](../.agents/plugins/marketplace.json)，使其指向
    [`./codex-plugins/<plugin>`](../codex-plugins/)。
-7. 執行 [`verify_codex_plugins.py`](verify_codex_plugins.py)，確認 [`codex-plugins/*/skills`](../codex-plugins/) 與 source
+7. 執行 [`verify-codex-plugins.mjs`](verify-codex-plugins.mjs)，確認 [`codex-plugins/*/skills`](../codex-plugins/) 與 source
    [`skills/`](../skills/) 完全一致，唯一允許的差異是移除 [`*_ch.md`](../skills/)。
 
 ### 前置條件
@@ -100,7 +100,7 @@ flowchart TD
 - 每個宣告的 skill 目錄都必須存在。
 - 每個目標 [`codex-plugins/<plugin>`](../codex-plugins/) 目錄都必須事先建立。
 - 每個目標 [`codex-plugins/<plugin>/.codex-plugin/plugin.json`](../codex-plugins/) 都必須已存在。
-- 環境中必須有 `python`，用於穩定格式化 JSON 與執行同步後驗證。
+- 環境中必須有 Node.js 22 以上的 `node`，用於穩定格式化 JSON 與執行同步後驗證；格式化使用 `JSON.rawJSON` 保留數字的原始寫法。
 - 若透過 `.sh` wrapper 執行，環境中必須有 `pwsh`。
 
 ### 用法
@@ -124,7 +124,7 @@ flowchart TD
 
 ## verify-codex-plugins
 
-[`verify_codex_plugins.py`](verify_codex_plugins.py) 是 [`codex-plugins/`](../codex-plugins/) 封裝產物的一致性檢查工具。
+[`verify-codex-plugins.mjs`](verify-codex-plugins.mjs) 是 [`codex-plugins/`](../codex-plugins/) 封裝產物的一致性檢查工具。
 
 ### 會驗證什麼
 
@@ -138,7 +138,15 @@ flowchart TD
 ### 用法
 
 ```powershell
-python .\scripts\verify_codex_plugins.py
+node .\scripts\verify-codex-plugins.mjs
+```
+
+### 測試
+
+- 測試在 [`tests/verify-codex-plugins.test.mjs`](tests/verify-codex-plugins.test.mjs)，使用 Node.js 內建的測試執行器，不需安裝套件。
+
+```powershell
+node --test .\scripts\tests\
 ```
 
 ### 失敗行為

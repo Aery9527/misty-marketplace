@@ -76,10 +76,12 @@ function ConvertTo-StableJson {
     try {
         $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
         [System.IO.File]::WriteAllText($tempPath, $compactJson, $utf8NoBom)
-        $pythonCode = 'import json, sys; print(json.dumps(json.load(open(sys.argv[1], encoding=''utf-8'')), indent=2, ensure_ascii=False))'
-        $formattedLines = & python -c $pythonCode $tempPath
+        # The reviver keeps each number as its source text, so that formatting never changes a value,
+        # e.g. 1.0 or an integer beyond the safe range of JavaScript.
+        $nodeCode = 'process.stdout.write(JSON.stringify(JSON.parse(require(''fs'').readFileSync(process.argv[1], ''utf8''), (key, value, context) => typeof value === ''number'' ? JSON.rawJSON(context.source) : value), null, 2))'
+        $formattedLines = & node -e $nodeCode $tempPath
         if ($LASTEXITCODE -ne 0) {
-            throw "Failed to format JSON with python: exit $LASTEXITCODE"
+            throw "Failed to format JSON with node: exit $LASTEXITCODE"
         }
 
         return ($formattedLines -join "`n")
@@ -119,7 +121,7 @@ try {
     $agentsMarketplacePath = Join-Path $repoRoot '.agents\plugins\marketplace.json'
     $codexOnlyBundlesPath = Join-Path $repoRoot '.agents\plugins\codex-only-bundles.json'
     $codexPluginsRoot = Join-Path $repoRoot 'codex-plugins'
-    $verifyScriptPath = Join-Path $repoRoot 'scripts\verify_codex_plugins.py'
+    $verifyScriptPath = Join-Path $repoRoot 'scripts\verify-codex-plugins.mjs'
 
     Write-Host '=== Sync Codex Plugins ===' -ForegroundColor Cyan
 
@@ -388,7 +390,7 @@ try {
     Write-Utf8File -Path $agentsMarketplacePath -Content $agentsJson
     Write-Host "  [OK] Rewrote $agentsMarketplacePath" -ForegroundColor Green
 
-    & python $verifyScriptPath
+    & node $verifyScriptPath
     if ($LASTEXITCODE -ne 0) {
         throw "Codex plugin verification failed with exit code $LASTEXITCODE."
     }

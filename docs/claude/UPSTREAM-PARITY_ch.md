@@ -122,7 +122,7 @@ git diff --stat db52e28f4d9ded852ab3942cea316258ae4ef346..origin/main \
 | 輸出渲染 | `codex-plugin/tests/render.test.mjs` |
 | Claude session client | `codex-plugin/tests/claude-cli.test.mjs`、`codex-plugin/tests/stream-protocol.test.mjs` |
 | session transfer resumability | `codex-plugin/tests/session-transfer.test.mjs` 的 deterministic coverage，加上真實雙行程 probe：透過 `transfer` 建立、在另一個行程 resume 回傳的 Claude session，並取回完全一致的 provenance token |
-| 靜態資產（prompts、schemas、授權、manifest） | `scripts/sync-codex-plugins.ps1` 完成且 `scripts/verify_codex_plugins.py` 通過 |
+| 靜態資產（prompts、schemas、授權、manifest） | `scripts/sync-codex-plugins.ps1` 完成且 `scripts/verify-codex-plugins.mjs` 通過 |
 | commands、agents、skills（文字） | 對照其映射的上游檔案人工審閱；無自動化關卡 |
 | hooks | deterministic hook tests，加上[宿主驗證](#宿主驗證)中的互動式 TUI probe |
 
