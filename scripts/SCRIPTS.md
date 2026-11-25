@@ -143,7 +143,8 @@ node .\scripts\verify-codex-plugins.mjs
 
 ### 測試
 
-- 測試在 [`tests/verify-codex-plugins.test.mjs`](tests/verify-codex-plugins.test.mjs)，使用 Node.js 內建的測試執行器，不需安裝套件。
+- 測試放在 [`tests/`](tests/)，使用 Node.js 內建的測試執行器，不需安裝套件。
+- [`tests/verify-codex-plugins.test.mjs`](tests/verify-codex-plugins.test.mjs) 測試本腳本；[`tests/code-mereology-scripts.test.mjs`](tests/code-mereology-scripts.test.mjs) 測試 skill `code-mereology` 隨附的腳本，它們是維護用的測試，所以不放在 skill 目錄內。
 
 ```powershell
 node --test .\scripts\tests\

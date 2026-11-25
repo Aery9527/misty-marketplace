@@ -70,11 +70,11 @@ monorepo 必須採用同一模型的巢狀結構：root 的 `docs/` 放描述各
 - `sd-<功能名稱>-plan.md` 可以裝下不只一筆延後變更條目。一份已交付的設計文件會隨著時間陸續收到新的變更需求，每一項都可以在輪到執行之前先被記下。條目之間要用一行空白、一行獨立的 `---`、再一行空白隔開——前後的空白行是必要的，因為緊接在一段文字下面的 `---` 會被解讀成標題底線，而不是分隔線。檔案開頭嚴禁以 `---` 起始，那在檔案最上方會被讀成 frontmatter 分隔線，而不是條目分隔線。條目必須依記錄先後附加在檔案後面，且每筆都必須自成一體：內容嚴禁依賴讀懂同一份檔案裡的另一筆條目。
 - 每筆條目開頭必須先寫下它存在的原因——促成這項變更的需求或觀察——再寫 delta 本身。等到當時的情境從記憶中淡去，這個原因才是讓後續讀者判斷這筆條目是否還值得執行的依據。除了原因之外，條目必須只記錄預計發生的 delta，以及日後恢復工作所需的執行、migration 或驗證資訊。嚴禁把提案行為寫成現在的事實或已確認規格。Phase 1 必須重新驗證提案行為，Phase 2 必須重新驗證其中的具體範例。
 - Plan 檔案可以完全不被其他文件連結。組裝與設計文件嚴禁只為了讓 plan 檔案可被找到就增加一條指向它的結構邊；plan 檔案本身可以為了提供 context 而往外連到現行設計或程式碼。
-- 延後變更條目可以延後任意時間。檢視尚未執行的 plan 時，對 repository root 執行 [list_plans.py](scripts/list_plans.py)，再讀取每一份回報的文件，摘要它裡面每一筆條目尚未完成的工作。
+- 延後變更條目可以延後任意時間。檢視尚未執行的 plan 時，對 repository root 執行 [list-plans.mjs](scripts/list-plans.mjs)，再讀取每一份回報的文件，摘要它裡面每一筆條目尚未完成的工作。
 - 任何 phase 選定或走訪一份 `sd-<功能名稱>.md` 時，都必須推導同目錄的 `sd-<功能名稱>-plan.md` 路徑，並在檔案存在時讀取。這項 filename lookup 讓冷載入仍能發現 plan 檔案，不需要把它加入文件圖。
 - 使用者選定要執行某一筆條目時，只把那筆條目當成 feature request；同一份檔案裡的其他條目維持延後。Phase 1 必須先更新並確認對應的設計文件。Phase 2 把 SBE 凍結成失敗測試、Phase 3 完成實作之前都保留該條目。條目讓意圖可以跨越暫停，但永遠不能取代任何 phase 要求的產出物。
 - 某筆條目描述的工作交付、且必要測試全綠後，必須驗證對應的 `sd-<功能名稱>.md`，以及所有受影響的組裝、上層與依賴者文件都已描述交付後的行為。驗證完成後，在同一個 change 裡刪除那筆條目；若檔案裡還留有其他條目，每一對相鄰條目之間必須剛好保留一組「空白行、---、空白行」分隔。只有當檔案裡不再留下任何條目時，才刪除整份檔案。嚴禁刪除未完成的條目；檔案不存在就表示該設計文件沒有延後工作留下。
-- `-plan.md` suffix 與 `(planned)` link marker 互不相關。[list_plans.py](scripts/list_plans.py) 用來發現延後變更文件；[list_planned.py](scripts/list_planned.py) 用來發現設計文件裡尚未實現的目標承諾。
+- `-plan.md` suffix 與 `(planned)` link marker 互不相關。[list-plans.mjs](scripts/list-plans.mjs) 用來發現延後變更文件；[list-planned.mjs](scripts/list-planned.mjs) 用來發現設計文件裡尚未實現的目標承諾。
 
 一份 `sd-<功能名稱>-plan.md` 裡有兩筆條目時，看起來像這樣：
 
@@ -93,7 +93,7 @@ Why: <促成下一筆條目的原因>
 執行搜尋腳本時，必須從安裝後的 skill root 推導路徑，嚴禁假設固定安裝位置：
 
 ```bash
-python <skill-root>/scripts/list_plans.py <repository-root>
+node <skill-root>/scripts/list-plans.mjs <repository-root>
 ```
 
 ## 跨階段規則

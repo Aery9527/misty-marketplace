@@ -95,17 +95,17 @@ flowchart TD
 - 若目標程式碼尚未存在，該連結是規劃路徑。規劃路徑只是暫時的位置標記，不是介面定義，嚴禁把它當成介面定義使用。
 - 面對規劃路徑時，本階段必須把自己限制在行為邊界、輸入與輸出語意，以及職責歸屬。精確的介面由 Phase 2 在建立最小骨架時產生，並由 Phase 2 在它的確認 gate 之前把連結收斂到真實目標。
 - 每一條規劃連結都必須在其緊接之後標上 `(planned)`：先是一條像 `[OrderValidator](internal/order/validator.go)` 這樣的連結，接著是該標記，中間最多一個空白。後續讀者因此分得出哪些是承諾、哪些是事實。Phase 2 收斂該連結時會拿掉這個標記。
-- 執行 [list_planned.py](../scripts/list_planned.py)——與下方計數器同樣位於 `<skill-root>/scripts/`——即可列出一份文件裡還沒兌現的承諾。它只認緊跟在 Markdown link 之後的標記，因此散文中出現的同一個詞永遠不會被誤判。
+- 執行 [list-planned.mjs](../scripts/list-planned.mjs)——與下方計數器同樣位於 `<skill-root>/scripts/`——即可列出一份文件裡還沒兌現的承諾。它只認緊跟在 Markdown link 之後的標記，因此散文中出現的同一個詞永遠不會被誤判。
 
 ## 行數計算
 
 - 計數行 = 檔案總行數扣除所有 `mermaid` 圍欄區塊的行數（含圍欄）。空行、標題、frontmatter 與純連結行一律計入。
 - Mermaid 區塊必須使用剛好三個反引號與小寫的 `mermaid` 標記，且必須從第一欄開始、前面不得有任何空白。嚴禁使用四個反引號圍欄、波浪號圍欄，也嚴禁把圖縮排放進清單項目或引用區塊——計數器會把其他形式一律讀成一般文字，結果是把行數算高而不是把行數藏起來，而且大型圖表放在容器裡本來就不好讀。
-- 執行本 skill 內的 [count_lines.py](../scripts/count_lines.py)，傳入一個或多個文件路徑。它會逐檔印出 `<行數>` 與路徑；遇到未關閉的 Mermaid 區塊時以非零狀態碼結束。
-- 腳本位於 `<skill-root>/scripts/count_lines.py`，其中 `<skill-root>` 是存放本 skill `SKILL.md` 的目錄——也就是本檔案所在 `references/` 目錄的上一層。必須從本檔案被載入的位置推導出該路徑，嚴禁寫死任何安裝路徑：本 skill 以 plugin 形式分發，會落在宿主安裝它的任何位置。
+- 執行本 skill 內的 [count-lines.mjs](../scripts/count-lines.mjs)，傳入一個或多個文件路徑。它會逐檔印出 `<行數>` 與路徑；遇到未關閉的 Mermaid 區塊時以非零狀態碼結束。
+- 腳本位於 `<skill-root>/scripts/count-lines.mjs`，其中 `<skill-root>` 是存放本 skill `SKILL.md` 的目錄——也就是本檔案所在 `references/` 目錄的上一層。必須從本檔案被載入的位置推導出該路徑，嚴禁寫死任何安裝路徑：本 skill 以 plugin 形式分發，會落在宿主安裝它的任何位置。
 
 ```bash
-python <skill-root>/scripts/count_lines.py path/to/sd-feature.md
+node <skill-root>/scripts/count-lines.mjs path/to/sd-feature.md
 ```
 
 - 每次撰寫與每次修改之後都必須重新計數。
@@ -142,5 +142,5 @@ python <skill-root>/scripts/count_lines.py path/to/sd-feature.md
 
 - 一份或多份 `sd-*.md`，且每一份都在自己那一層取得使用者確認。
 - 路徑上每一份 `bd-*.md` 都已列出最新的下一層節點連結，Mermaid 圖也符合目前的角色類型與關係規則。使用者已逐一確認各節點的文件。
-- 路徑上任何一條邊都不再帶有 `(planned)` 標記——每一個規劃中的節點都已存在。用 [list_planned.py](../scripts/list_planned.py) 驗證：指向 `.md` 文件的項目必須已經消失，指向程式碼的項目則會留到 Phase 2 把介面建出來為止。
+- 路徑上任何一條邊都不再帶有 `(planned)` 標記——每一個規劃中的節點都已存在。用 [list-planned.mjs](../scripts/list-planned.mjs) 驗證：指向 `.md` 文件的項目必須已經消失，指向程式碼的項目則會留到 Phase 2 把介面建出來為止。
 - 每一條分支都終止於 leaf，使 Phase 2 具備合法輸入。為既有程式碼而進場的 partial leaf，對本階段而言同樣算完成，但它不是本輪產出的那個輸入——Phase 2 要去處理的是「正在建置該功能」的那份 leaf。

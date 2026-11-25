@@ -75,11 +75,11 @@ A monorepo MUST nest the same model: the root `docs/` holds the `bd-*.md` descri
 - A `sd-<feature-name>-plan.md` file MAY hold more than one deferred-change entry. A delivered design document keeps attracting change requests over time, and each MAY be recorded before its turn to execute arrives. Separate entries with a blank line, a `---` line on its own, then another blank line — the surrounding blank lines MUST both be present, because a `---` line directly under a paragraph is read as a heading underline rather than a separator. The file MUST NOT open with a `---` line, which at the top of a file reads as a frontmatter delimiter instead. Entries MUST be appended in the order they were recorded, and each MUST be self-contained: nothing in it depends on reading another entry in the same file.
 - Each entry MUST open with the reason it exists — the requirement or observation that made the change necessary — before the delta itself. That reason is what lets a later reader judge whether the entry is still worth executing once the situation that prompted it has faded from memory. Beyond the reason, an entry MUST contain only the intended future delta and the execution, migration, or verification notes needed to resume it. It MUST NOT present proposed behavior as current fact or as confirmed specification. Phase 1 MUST revalidate the proposed behavior, and Phase 2 MUST revalidate any concrete examples.
 - A plan file MAY remain unlinked from every document. Assembly and design documents MUST NOT add a structural edge to it merely for discoverability; the plan file MAY link outward to the current design or code for context.
-- A deferred-change entry MAY remain deferred for any length of time. To review outstanding plans, run [list_plans.py](scripts/list_plans.py) against the repository root, then read each reported file and summarize the work that remains in every entry it holds.
+- A deferred-change entry MAY remain deferred for any length of time. To review outstanding plans, run [list-plans.mjs](scripts/list-plans.mjs) against the repository root, then read each reported file and summarize the work that remains in every entry it holds.
 - Whenever a phase selects or walks an `sd-<feature-name>.md`, derive the sibling `sd-<feature-name>-plan.md` path and read it if it exists. This filename lookup preserves cold-load discovery without adding the plan file to the document graph.
 - When the user chooses one entry to execute, treat only that entry as the feature request; the file's other entries stay deferred. Phase 1 MUST first update and confirm the companion design document. Keep the entry while Phase 2 freezes the SBE in failing tests and Phase 3 implements it. The entry carries intent across a pause but never replaces an artifact required by those phases.
 - After one entry's work is delivered and the required tests are green, verify the companion `sd-<feature-name>.md` and every affected assembly, parent, or dependent document describe the delivered behavior. Delete that entry in the same change once verified, keeping exactly one blank-line/`---`/blank-line separator between each pair of entries that remain adjacent afterward. Delete the whole file only once no entry remains. MUST NOT delete an unfinished entry; an absent file means no deferred work remains for that design document.
-- The `-plan.md` suffix and the `(planned)` link marker are unrelated. [list_plans.py](scripts/list_plans.py) discovers deferred-change files; [list_planned.py](scripts/list_planned.py) discovers unresolved targets promised inside design documents.
+- The `-plan.md` suffix and the `(planned)` link marker are unrelated. [list-plans.mjs](scripts/list-plans.mjs) discovers deferred-change files; [list-planned.mjs](scripts/list-planned.mjs) discovers unresolved targets promised inside design documents.
 
 Two entries in one `sd-<feature-name>-plan.md` file look like this:
 
@@ -98,7 +98,7 @@ Why: <the reason the next entry exists>
 Run the search script from its installed skill root rather than assuming a fixed installation path:
 
 ```bash
-python <skill-root>/scripts/list_plans.py <repository-root>
+node <skill-root>/scripts/list-plans.mjs <repository-root>
 ```
 
 ## Cross-Phase Rules
