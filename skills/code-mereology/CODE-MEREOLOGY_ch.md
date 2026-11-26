@@ -143,6 +143,6 @@ monorepo 採用同一模型的巢狀結構：repository 根目錄一個 `docs/` 
 - [Phase 3 — 實作](references/phase3-tdd_ch.md)
 - [Phase 4 — 效能驗證](references/phase4-benchmark_ch.md)
 
-另有三支腳本支援這套流程：[count_lines.py](scripts/count_lines.py) 負責行數上限，[list_planned.py](scripts/list_planned.py) 負責列出目標尚未存在的連結，[list_plans.py](scripts/list_plans.py) 負責列出 repository 中仍存在的延後 plan。
+另有三支腳本支援這套流程：[count-lines.mjs](scripts/count-lines.mjs) 負責行數上限，[list-planned.mjs](scripts/list-planned.mjs) 負責列出目標尚未存在的連結，[list-plans.mjs](scripts/list-plans.mjs) 負責列出 repository 中仍存在的延後 plan。
 
 [返回開頭](#快速導覽)

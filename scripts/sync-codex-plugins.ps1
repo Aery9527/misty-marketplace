@@ -68,7 +68,9 @@ function Write-Utf8File {
 function ConvertTo-StableJson {
     param(
         [Parameter(Mandatory)]
-        $InputObject
+        $InputObject,
+        [Parameter(Mandatory)]
+        [string]$NodePath
     )
 
     $compactJson = $InputObject | ConvertTo-Json -Depth 100 -Compress
@@ -76,10 +78,12 @@ function ConvertTo-StableJson {
     try {
         $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
         [System.IO.File]::WriteAllText($tempPath, $compactJson, $utf8NoBom)
-        $pythonCode = 'import json, sys; print(json.dumps(json.load(open(sys.argv[1], encoding=''utf-8'')), indent=2, ensure_ascii=False))'
-        $formattedLines = & python -c $pythonCode $tempPath
+        # The reviver keeps each number as its source text, so that formatting never changes a value,
+        # e.g. 1.0 or an integer beyond the safe range of JavaScript.
+        $nodeCode = 'process.stdout.write(JSON.stringify(JSON.parse(require(''fs'').readFileSync(process.argv[1], ''utf8''), (key, value, context) => typeof value === ''number'' ? JSON.rawJSON(context.source) : value), null, 2))'
+        $formattedLines = & $NodePath -e $nodeCode $tempPath
         if ($LASTEXITCODE -ne 0) {
-            throw "Failed to format JSON with python: exit $LASTEXITCODE"
+            throw "Failed to format JSON with node: exit $LASTEXITCODE"
         }
 
         return ($formattedLines -join "`n")
@@ -114,12 +118,31 @@ $OverlayDirName = 'codex-plugin'
 $ReservedPluginRootEntries = @('.codex-plugin', 'skills')
 
 try {
+    $nodeRequirement = 'Syncing Codex plugins requires Node.js 22 or later with JSON source text support.'
+    $nodeCommand = Get-Command node -CommandType Application -TotalCount 1 -ErrorAction SilentlyContinue
+    if (-not $nodeCommand) {
+        throw $nodeRequirement
+    }
+
+    $nodePath = $nodeCommand.Source
+    $nodeProbe = @(
+        'const major = Number(process.versions.node.split(''.'')[0]);'
+        'const supported = major >= 22 && typeof JSON.rawJSON === ''function'' &&'
+        '  JSON.parse(''1'', (_key, _value, context) => context && context.source) === ''1'';'
+        'process.stdout.write(supported ? ''supported'' : ''unsupported'');'
+    ) -join ' '
+    $nodeProbeOutput = & $nodePath -e $nodeProbe
+    $nodeProbeExitCode = $LASTEXITCODE
+    if ($nodeProbeExitCode -ne 0 -or ($nodeProbeOutput -join "`n") -cne 'supported') {
+        throw $nodeRequirement
+    }
+
     $repoRoot = (Get-Location).Path
     $claudeMarketplacePath = Join-Path $repoRoot '.claude-plugin\marketplace.json'
     $agentsMarketplacePath = Join-Path $repoRoot '.agents\plugins\marketplace.json'
     $codexOnlyBundlesPath = Join-Path $repoRoot '.agents\plugins\codex-only-bundles.json'
     $codexPluginsRoot = Join-Path $repoRoot 'codex-plugins'
-    $verifyScriptPath = Join-Path $repoRoot 'scripts\verify_codex_plugins.py'
+    $verifyScriptPath = Join-Path $repoRoot 'scripts\verify-codex-plugins.mjs'
 
     Write-Host '=== Sync Codex Plugins ===' -ForegroundColor Cyan
 
@@ -365,7 +388,7 @@ try {
                 Write-Host "  [!] Removed stale plugin-root entry $($rootEntry.Name)" -ForegroundColor Yellow
             }
 
-            $codexPluginManifestJson = ConvertTo-StableJson -InputObject $plan['codexPluginManifest']
+            $codexPluginManifestJson = ConvertTo-StableJson -InputObject $plan['codexPluginManifest'] -NodePath $nodePath
             Write-Utf8File -Path $codexPluginManifestPath -Content $codexPluginManifestJson
             Write-Host "  [OK] Updated manifest version to $marketplaceVersion" -ForegroundColor Green
             Write-Host "  [OK] Synced $(@($plan['skills']).Count) skill(s) for $($plan['name'])" -ForegroundColor Green
@@ -384,11 +407,11 @@ try {
     }
     $updatedAgentsMarketplace['plugins'] = $syncedPlugins
 
-    $agentsJson = ConvertTo-StableJson -InputObject $updatedAgentsMarketplace
+    $agentsJson = ConvertTo-StableJson -InputObject $updatedAgentsMarketplace -NodePath $nodePath
     Write-Utf8File -Path $agentsMarketplacePath -Content $agentsJson
     Write-Host "  [OK] Rewrote $agentsMarketplacePath" -ForegroundColor Green
 
-    & python $verifyScriptPath
+    & $nodePath $verifyScriptPath
     if ($LASTEXITCODE -ne 0) {
         throw "Codex plugin verification failed with exit code $LASTEXITCODE."
     }

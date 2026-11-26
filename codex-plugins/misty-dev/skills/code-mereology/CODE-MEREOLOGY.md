@@ -190,9 +190,9 @@ This file is an overview. The rules an agent actually follows are in
 - [Phase 3 — Implementation](references/phase3-tdd.md)
 - [Phase 4 — Performance Verification](references/phase4-benchmark.md)
 
-Three scripts support the workflow: [count_lines.py](scripts/count_lines.py) for
-the line limit, [list_planned.py](scripts/list_planned.py) for links whose target
-does not exist yet, and [list_plans.py](scripts/list_plans.py) for deferred plans
+Three scripts support the workflow: [count-lines.mjs](scripts/count-lines.mjs) for
+the line limit, [list-planned.mjs](scripts/list-planned.mjs) for links whose target
+does not exist yet, and [list-plans.mjs](scripts/list-plans.mjs) for deferred plans
 that remain in a repository.
 
 [Back to top](#quick-navigation)

@@ -3,74 +3,98 @@ name: code-rules
 description: >-
   Concrete implementation rules for any code, including HTML and CSS. Load when
   designing, writing, modifying, refactoring, rearchitecting, or reviewing code,
-  covering change boundaries, error handling, comments, logging, tool usage,
-  and OKLCH colors for web pages and CSS. Follow established project and
-  language conventions; use `arch-rules` for higher-level design trade-offs.
+  covering code structure, error handling, module boundaries,
+  comments, logging, tool usage, and OKLCH colors for web pages and CSS. Follow
+  established project and language conventions.
 ---
 
 # Code Rules
 
-- MUST apply this precedence: explicit project rules, consistent conventions in existing project code, language conventions, then these rules. Use `arch-rules` for design-level trade-offs.
+- MUST apply this precedence: explicit project rules, consistent conventions in existing project code, language conventions, then these rules. Use `arch-rules` for the design trade-offs that these rules do not decide.
+- These rules are language-independent; the examples use Go, and MUST be adapted to the syntax and types of the target language.
 
-- These rules are language-independent.
+## Change Principles
 
-## Change Rules
+1. Before changing behavior, MUST read direct callers, tests covering the affected behavior, and the containing module to confirm the existing contract.
 
-- Before changing behavior, MUST read direct callers, tests covering the affected behavior, and the containing module to confirm the existing contract.
-- Before writing code, MUST state the intended behavior and how it will be verified; include compatibility constraints only when they apply.
-- One change does one thing. MUST NOT mix unrelated cleanup into a behavior change; put cleanup in a separate commit.
-- MUST review a function's responsibility, input meaning, and contract regardless of parameter count. Many parameters are a design warning; parameter count alone does not prove multiple responsibilities.
-- For signatures under our control, business arguments MUST NOT exceed 3, excluding execution context and implicit receivers. MUST preserve externally fixed signatures and their contracts. When the limit is exceeded:
-    - Inputs serve independently usable capabilities: split those functions; a workflow function may coordinate them when that is its responsibility.
-    - One operation needs multiple data fields: use an input type whose meaning corresponds to that operation, carrying required data and optional settings, including values that affect behavior.
-- Prefer existing domain types when their meaning and contract fit without bringing in substantial unrelated data. MUST NOT use an input object to conceal unrelated responsibilities.
-- When designing or changing a signature with 3 or fewer business arguments, prefer a suitable existing type; otherwise keep separate arguments by default. Group multiple inputs into a new type only when they form a meaningful data unit that known workflows need to pass, store, or validate together.
-- MUST validate required business inputs and their value ranges at a boundary all calls to the operation pass through.
-    - Reject only values forbidden by the contract; `0`, `false`, and empty strings are not inherently invalid.
-    - MUST document defaults for values the contract allows to be omitted. When omission differs from an explicit zero value, the input model MUST distinguish them.
-    - Within one trust boundary, MUST NOT mechanically repeat the same validation at every layer.
-- Before adding required input or making existing input required, MUST inspect its construction and loading sources, identify sources that omit it, and ensure boundary validation detects missing data. This applies to individual arguments and fields added to input types alike.
-    - Update sources under our control in the same change. For sources that cannot be updated together, preserve a compatible entry point or explicitly describe the incompatible change and migration.
-- Only when explicit requirements or existing extension points show that cases will keep being added, choose a dispatch table or **Strategy Pattern** according to the behavior; otherwise keep the `if-else` / `switch`. MUST NOT abstract early merely to remove branches.
-- When reorganizing internal implementation, MUST preserve public operation call patterns and caller responsibilities. MUST NOT transfer internal selection responsibilities to operation callers. Existing input meanings, results, and errors MUST also be preserved, except for explicitly described effects of initialization changes.
-    - Initialization and dependency assembly may change. If initialization call patterns or behavior change, MUST inspect actual construction sources and compatibility commitments and explain the impact. Update sources under our control; for others, preserve a compatible entry point or explicitly describe the incompatible change and migration.
+## Code Principles
 
-## Error Rules
+1. Nesting limit: at most 2 levels of control structures; an `if`, a loop, a `switch`, and an exception-handling block each count as one level, e.g. `if`, `for`, `switch`, and `select` in Go.
+    1. `if a { for _, x := range xs { use(x) } }` is allowed; a third structure inside it, e.g. `if b`, is prohibited.
+    2. An `if` / `else if` / `else` chain counts as one level; so does a `try` with its `catch` and `finally` blocks.
+2. Function content: a group of steps that serves one purpose MUST be extracted into a function whose name states that purpose; extract it only when the function name can clearly carry the meaning of those lines of code combined.
+3. Function grouping: when the meaning of several functions can be gathered further under a name with higher cohesion and a clearer boundary, create a type or a module to hold these functions of the same scope, e.g. a package or a type with methods in Go.
+4. Function parameters: at most 3, and the signature MUST stay stable for the foreseeable future.
+    1. More than 3 means that the function may have too many responsibilities: when several calculations, each with its own meaning, are written in one function, they can only run together and cannot be used alone. MUST first review whether the function can be split by responsibility into several functions; only when the parameters belong to the same scope, wrap them in a new type, which also satisfies the stability principle below.
+    2. When a function is likely to keep gaining parameters in the foreseeable future, MUST wrap the parameters of the same scope in a dedicated type, to avoid a breaking change of the signature, and MUST state for each parameter whether it is required or what its default is.
+    3. Execution context and the receiver object do not count, e.g. `context.Context` and the receiver of a method in Go; MUST preserve an externally fixed signature and its contract.
+5. Function length: keep it within 50 lines, counted from the first line of the function signature to its last line, blank lines and comments included; when it must exceed that, adjust it by items 2 and 3. Mechanical content such as "a series of `if-else`" or "telling many kinds of error apart one by one" indicates a structural design problem, and MUST be avoided by designing at a higher level.
+6. Constants of the same meaning: when constants in many places stand for the same meaning, MUST assign or concatenate them from one constant, so that the code states their relation.
+    1. E.g. a URL path prefix: define one constant for the prefix of the API endpoints of one scope and concatenate it; MUST NOT repeat the prefix as a literal, so that changing the prefix changes one constant, and the prefix is easier to trace.
+    2. A value that a test requests with, and a result that it expects, MUST be written as a test-only constant or a literal, and MUST NOT come from a constant of the production code, so that the test fails when the production constant is wrong. This is the only repetition allowed for constants of the same meaning.
+7. Type naming: MUST name a type after the meaning of its data or its responsibility.
+    1. A suffix MUST carry a meaning that is lost when the suffix is removed, e.g. `ShippingConfig` is the configuration of shipping, and `MemberContact` is the contact details of a member; MUST NOT use a suffix whose removal leaves the meaning unchanged, e.g. `Data` or `Info`: `MemberData` cannot be told apart from `Member`.
+    2. MUST NOT name a data type after the function that uses it, e.g. use `MemberRegistration`, not `CreateMemberInput`; a request/response that belongs to exactly one API endpoint is the exception, e.g. `CreateMemberRequest`.
 
-- MUST NOT swallow an error, return fake success, or silently degrade when the contract does not define a fallback.
-- Handle an error only where the code can recover, translate it to a boundary contract, or decide the final outcome; elsewhere, add context and propagate.
-- Log a failure once, at the layer that decides the final outcome. MUST NOT log and propagate at every layer.
+## Error Principles
 
-## Comment Rules
+1. No hidden failure: MUST NOT swallow an error, return fake success, or silently degrade when the contract does not define a fallback.
+2. Where to handle: handle an error only where the code can recover, translate it to a boundary contract, or decide the final outcome; elsewhere, MUST let the error propagate to the caller, and to add context, propagate a new error that keeps the original one, e.g. `fmt.Errorf("load orders: %w", err)` in Go.
+3. Log once: log a failure once, at the layer that decides the final outcome. MUST NOT log and propagate at every layer.
 
-- Describe high-level purpose, data meaning, contracts, constraints, and trade-offs. MUST NOT narrate implementation steps.
-- When a comment records two or more independent points, MUST format them as a bullet list, not prose.
-- Change history belongs only in commit messages. MUST NOT put it in code comments.
-- Every type, function, and field MUST have a concise comment giving a high-level overview of its purpose or meaning.
-    - A struct comment MUST state its responsibility and scope. Prefer describing what it does; express excluded responsibilities through workflow or module boundaries.
-    - Field and argument comments MUST explain the data's meaning and include an example when a fixed format applies.
-    - Function comments MUST document existing preconditions, call-ordering constraints, and cross-module contracts that affect correct use or modification and are not fully expressed by the function's name or declared types (including receiver, parameter, and result types); omit these supplementary items when none apply. MUST NOT enumerate callers or callees merely to repeat the call graph.
+## Architecture Principles
 
-## Logging Rules
+1. Composition over inheritance: when several types have a group of fields or behavior of the same scope, MUST compose them from a separate type instead of inheriting, and define the common contract with an interface.
+    1. E.g. API requests and responses often use a supertype to gather the same fields, but the same fields may still belong to different scopes; composition and interfaces separate the scopes properly, so that each API request or response holds what it needs and nothing more.
+    2. Inheritance that is required is exempt, e.g. the exception types of a language, or a library that requires extension to work. For a library, consider an adapter that bridges to composition, to satisfy this principle.
+2. Module boundary: each module MUST use input and output types that it defines as its external boundary; code outside the module MUST use the module only through that boundary, and MUST NOT depend on its internal implementation.
+    1. E.g. business logic does not depend on the communication protocol: an HTTP request or response, e.g. `*http.Request` and `http.ResponseWriter` in Go, MUST be converted by an adapter into the input and output types of the business module's boundary, which decouples the business logic from the protocol.
+    2. MUST validate every parameter that enters through the boundary; within the trust scope of one module, MUST NOT mechanically repeat the same validation at every layer.
+    3. Validation rejects only values that the contract forbids; `0`, `false`, and an empty string are not inherently invalid.
+    4. MUST document the default of each value that the contract allows to be omitted. When omission differs from an explicit zero value, the input model MUST distinguish them.
+    5. Before adding a required input, as a parameter or as a field of an input type, or making an existing input required, MUST inspect the sources that construct and load the data, identify the sources that omit the value, and ensure that the validation at the boundary detects the missing value; update the sources under our control in the same change, and for a source that cannot be updated together, preserve a compatible entry point or explicitly describe the incompatible change and the migration. E.g. when `MemberRegistration` gains a required field `Locale`, the stored old data and the other workflows that create a member do not have this value.
+    6. When reorganizing the internal implementation, MUST preserve the call patterns of the external operations and the callers' responsibilities, and MUST also preserve the existing input meanings, results, and errors.
+3. Feature decoupling: a feature that crosses a module boundary, or one whose implementation is not settled or needs to be replaceable, MUST provide its implementation behind an interface, and MUST confirm that all inputs and outputs of that interface are independent enough, depending only on the necessary components of other modules. When the boundaries of two modules are unrelated, couple them through an adapter, to avoid a dependency.
+4. No circular dependency: the dependencies between modules MUST NOT form a cycle, directly or indirectly. A circular dependency means that the functions of the modules are unclear; lower-level logic can always be extracted to break the cycle.
+5. Branching logic: when known requirements or existing extension points show that an `if-else` / `switch` will keep gaining branches, and each branch corresponds to a group of independent logic, MUST decouple the responsibility of selecting a branch from the handling logic, so that they can evolve independently; MUST NOT replace a `switch` with a `map` or a Strategy only because the branches increase.
+    1. Closed set: the module that selects the branch owns all branches, and adding a branch may change the selector. Keep the `switch`, with each branch calling one named function.
+    2. Open set: other modules provide the branches, or they are provided at run time, and adding a branch MUST NOT change the selector. When a unique key selects the branch, MUST use a dispatch table: the mapping from a key to its handler is registered from outside, and the selector depends only on the common interface.
+    3. The Strategy Pattern is a way to encapsulate the handling logic, and can be combined with either way of selecting above: use it when each branch has its own settings and logic and needs to be replaceable behind a common contract; MUST NOT create a Strategy for fixed and simple branches only to apply the pattern.
+6. Data apart from logic: a data type, i.e. a type that only carries data, e.g. a DTO, or an API request or response, MUST declare only fields and the functions that access them, and MUST NOT hold any logic; the logic MUST live in a function or a type that uses the data.
+    1. E.g. to tell whether a query point lies inside a search area, MUST write a function `func Contains(bounds Bounds, x, y float64) bool`, and MUST NOT write a method of `Bounds`, `func (bounds Bounds) Contains(x, y float64) bool`.
+    2. Validation on construction is logic too, and MUST NOT be written in a data type; the boundary that receives the data validates it, see item 2 of this section.
+    3. When the language has a dedicated declaration for pure data, e.g. a record, a type that holds logic MUST NOT be declared with it.
 
-- Every piece of information MUST have traceable value for later tracking, statistics, analysis, or debugging. Information that helps none of these MUST NOT be logged.
-- Every log line MUST be traceable to one code location, either because the message is unique or because the logger attaches the source location automatically.
-- Logs MUST use a compact structure, not prose. If the project has a structured-field logging convention, MUST follow it; otherwise use a fixed-order positional format. Field meaning comes from the code location.
-- When logging solely for statistics, MUST aggregate data and log on a timer or a count, rather than logging each event.
-    - If losing an unlogged interval is unacceptable, log each event instead; statistics may be derived from these logs.
-    - Event logs already required for diagnostics or auditing may also be reused for statistics.
-- If the project has no level policy: `DEBUG` diagnoses, `INFO` records meaningful lifecycle events, `WARN` records recoverable degradation, and `ERROR` records failed outcomes that need human attention.
-- MUST NOT dump whole requests, responses, or objects. Payload size and field count follow project limits; if none exist, log selected fields only.
+## Comment Principles
+
+1. High-level intent: describe only high-level purpose, data meaning, contracts, constraints, and trade-offs. MUST NOT narrate implementation steps.
+2. List structure: when a comment has two or more independent points, MUST format them as a list, not prose.
+3. Purpose comment: every type, function, and field MUST have a concise comment giving a high-level overview of its purpose or meaning.
+    1. A type comment MUST state its responsibility and scope. Prefer describing what it does; express excluded responsibilities through workflow or module boundaries.
+    2. A comment on a field or a parameter MUST explain the data's meaning, and MUST include an example when a fixed format applies.
+    3. A function comment MUST list the preconditions that exist, e.g. call-ordering constraints and cross-module contracts; omit these supplementary items when none apply. MUST NOT enumerate callers or callees merely to repeat the call graph.
+4. History isolation: change history belongs only in commit messages. MUST NOT put it in code comments.
+5. Fix in the same change: while making a change, when the affected code lacks a required comment, or its comment contradicts the confirmed purpose, data meaning, or contract, or violates the Comment Principles, MUST add or correct it in the same change.
+
+## Logging Principles
+
+1. Every piece of information MUST have traceable value for later tracking, statistics, analysis, or debugging. Information that helps none of these MUST NOT be logged.
+2. Every log line MUST be traceable to one code location, either because the message is unique or because the logger attaches the source location automatically.
+3. Logs MUST use a compact structure, not prose. If the project has a structured-field logging convention, MUST follow it; otherwise use a fixed-order positional format. Field meaning comes from the code location.
+4. A log written solely for statistics MUST be aggregated first, then written on a timer or a count, rather than one line per event.
+    1. If losing an unlogged interval is unacceptable, log each event instead; statistics may be derived from these logs.
+    2. Event logs already kept for diagnostics or auditing may be reused for statistics.
+5. If the project has no level policy: `DEBUG` is for debugging, `INFO` records meaningful lifecycle events and aggregated statistics, `WARN` records recoverable degradation, and `ERROR` records failed outcomes that need human attention.
+6. MUST NOT dump whole requests, responses, or objects. Payload size and field count follow project limits; if none exist, log selected fields only.
 
 ## Execution Awareness
 
-- When handling code or HTML, if the current environment provides an available `LSP` tool that supports the language, MUST prefer it so lookup and edits follow real program symbols; otherwise use text-based tools.
-- Colors in web pages and CSS MUST be defined in `OKLCH`. For other visual output, pick colors in OKLCH, then convert to a color space the target format supports.
+1. When handling code or HTML, if the current environment provides an available `LSP` tool that supports the language, MUST prefer it so lookup and edits follow real program symbols; otherwise use text-based tools.
+2. Colors in web pages and CSS MUST be defined in `OKLCH`. For other visual output, pick colors in OKLCH, then convert to a color space the target format supports.
 
 ## Example References
 
-- For initial design and implementation, refactoring, or rearchitecting, MUST evaluate the conditions for parameter count and branching below against known requirements and the planned implementation before deciding interfaces and responsibility boundaries. Read any triggered reference before making those decisions.
-- When an existing or planned function signature has more than 3 business arguments (excluding execution context and implicit receivers), MUST read [Parameter Count Examples](references/parameter-examples.md) before deciding how to split responsibilities or group inputs.
-- When known requirements or extension points show that `if-else` / `switch` branches will keep growing and involve distinct responsibilities or behavior implementations that can change independently, MUST read [Branching Examples](references/branching-examples.md) before deciding how to separate responsibilities and whether a dispatch table or Strategy is appropriate.
-- Before writing or modifying code, MUST read [Declaration Comment Examples](references/comment-examples.md) and follow the Comment Rules and the demonstrated commenting approach. While making the change, if the affected code lacks required comments, or its comments contradict the confirmed purpose, data meaning, or contracts, or violate the Comment Rules, MUST add or correct them as part of the same change.
-- Before writing or modifying log statements, MUST read [Logging Examples](references/logging-examples.md) and follow the Logging Rules and the demonstrated logging approach.
+1. Parameter count: when an existing or planned function signature has more than 3 parameters, MUST read [Parameter Count Examples](references/parameter-examples.md) before deciding how to split responsibilities or wrap parameters.
+2. Branching: when known requirements or extension points show that the branches of an `if-else` / `switch` will keep growing, and each branch corresponds to a group of independent logic, MUST read [Branching Examples](references/branching-examples.md) before deciding whether to use a dispatch table or the Strategy Pattern.
+3. Declaration comments: before writing or modifying code, MUST read [Declaration Comment Examples](references/comment-examples.md), and follow the Comment Principles and the commenting approach that the examples show.
+4. Logging: before writing or modifying log statements, MUST read [Logging Examples](references/logging-examples.md), and follow the Logging Principles and the approach that the examples show.

@@ -1,11 +1,66 @@
 # 分支選擇範例
 
-- 以下範例使用 Go，請依目標語言調整語法與輸入型別。
+- 以下範例使用 Go，請依目標語言調整語法與型別。
+- 每個章節是一個重構的教學情境：先列調整前的實作，再列判斷與調整後的實作；兩份實作互為替代方案，同名的宣告不會同時存在。有共同宣告的章節，共同宣告在調整前後都使用。
+- 「固定情況」與「Strategy」是內部重構：調整前後的建立方式與執行呼叫相同，改變的只有內部實作。「分派表」因為新增跨模組擴充的需求而改變建立方式。
 
-- 固定情況：需求只定義 active 與 paused 兩種狀態標籤，未知值顯示 `Unknown`，因此保留 `switch`。
+## 固定情況
+
+- 需求只定義 active 與 paused 兩種狀態標籤，未知值顯示 `Unknown`；沒有需求顯示狀態會持續增加。
+
+- 調整前：以 Strategy 與註冊表提供兩個固定的標籤。
 
 ```go
-// StatusLabel 提供帳號狀態的顯示標籤。
+// statusLabel 提供一種帳號狀態的顯示標籤。
+type statusLabel interface {
+	// Label 回傳顯示標籤。
+	Label() string
+}
+
+// activeLabel 是 active 狀態的標籤。
+type activeLabel struct{}
+
+// Label 回傳 active 狀態的顯示標籤。
+func (activeLabel) Label() string {
+	return "Active"
+}
+
+// pausedLabel 是 paused 狀態的標籤。
+type pausedLabel struct{}
+
+// Label 回傳 paused 狀態的顯示標籤。
+func (pausedLabel) Label() string {
+	return "Paused"
+}
+
+// statusLabels 是依狀態索引的標籤註冊表。
+var statusLabels = map[string]statusLabel{
+	"active": activeLabel{},
+	"paused": pausedLabel{},
+}
+
+// StatusLabel 回傳帳號狀態的顯示標籤。
+//
+//   - status 是帳號狀態，例如 "active"。
+//   - 未知的狀態回傳 "Unknown"。
+func StatusLabel(status string) string {
+	label, ok := statusLabels[status]
+	if !ok {
+		return "Unknown"
+	}
+	return label.Label()
+}
+```
+
+- 判斷：兩個分支各只回傳一個固定的字串，沒有各自獨立的邏輯；需求也沒有顯示狀態會持續增加。`statusLabel`、兩個實作與註冊表沒有對應任何擴充需求，只增加閱讀成本。因此改回 `switch`。
+
+- 調整後：`StatusLabel` 以 `switch` 直接列出兩種狀態。
+
+```go
+// StatusLabel 回傳帳號狀態的顯示標籤。
+//
+//   - status 是帳號狀態，例如 "active"。
+//   - 未知的狀態回傳 "Unknown"。
 func StatusLabel(status string) string {
 	switch status {
 	case "active":
@@ -18,140 +73,221 @@ func StatusLabel(status string) string {
 }
 ```
 
-- 以下為重構的教學情境。每組範例以共同宣告放在同一檔案前方，再接調整前或調整後的其中一份實作；兩份實作為替代方案。這兩組範例的初始化與執行呼叫維持相同，改變的是私有欄位、內部組裝與操作內部實作。
+- 前後都以 `StatusLabel(status)` 呼叫，結果相同：`"active"` 回傳 `"Active"`，`"paused"` 回傳 `"Paused"`，其他值回傳 `"Unknown"`。
 
 ## 分派表
 
-- 專案明確要求持續新增共用既有輸出依賴的內建命令。將命令與處理函式的對應從私有 switch 移至內部註冊表。新增命令調整內部註冊而非 `Run`；公開的初始化與執行呼叫方式維持不變。
+- 核心模組提供命令執行器，各功能模組提供自己的命令：健康檢查模組提供 `ping`，部署模組提供 `status`。專案明確要求新增功能模組時不修改核心模組。
+- 每個程式碼區塊是一個 package 的一個檔案；模組路徑以 `example.com/app` 為例。
 
-- 共同宣告：
+- 調整前：核心模組的 `CommandDispatcher` 以 `switch` 列出各模組的命令，並直接呼叫各模組的函式。
 
 ```go
-import (
-	"context"
-	"fmt"
-	"io"
-)
+package health
 
-// ping 寫出命令的存活回覆。
-func ping(ctx context.Context, output io.Writer) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-	_, err := fmt.Fprintln(output, "pong")
-	return err
-}
-
-// status 寫出命令的就緒回覆。
-func status(ctx context.Context, output io.Writer) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-	_, err := fmt.Fprintln(output, "ready")
-	return err
+// Ping 回傳存活回覆。
+func Ping() string {
+	return "pong\n"
 }
 ```
 
-- 調整前：在 `Run` 內選擇各個內建命令。
+```go
+package deploy
+
+// Status 回傳就緒回覆。
+func Status() string {
+	return "ready\n"
+}
+```
 
 ```go
-// Dispatcher 透過已設定的輸出執行內建命令。
-type Dispatcher struct {
-	output io.Writer // 已完成初始化的命令回覆輸出目的地。
+package core
+
+import (
+	"fmt"
+	"io"
+
+	"example.com/app/deploy"
+	"example.com/app/health"
+)
+
+// CommandDispatcher 執行各功能模組的命令。
+type CommandDispatcher struct{}
+
+// NewCommandDispatcher 建立命令執行器。
+func NewCommandDispatcher() *CommandDispatcher {
+	return &CommandDispatcher{}
 }
 
-// NewDispatcher 以指定的輸出目的地初始化命令執行器。
+// Run 執行 name 指定的命令，並把回覆寫到 output。
 //
-//   - output 必須是已完成初始化的非 nil writer。
-func NewDispatcher(output io.Writer) *Dispatcher {
-	return &Dispatcher{output: output}
-}
-
-// Run 執行 name 指定的內建命令。
-//
-//   - 分派器必須已透過 NewDispatcher 初始化。
-func (dispatcher *Dispatcher) Run(ctx context.Context, name string) error {
-	var err error
+//   - 前置條件：output 必須是非 nil 的值。
+//   - name 是命令名稱，例如 "ping"。
+//   - output 是回覆的輸出目的地。
+//   - 未知的名稱回傳錯誤，且不寫入輸出。
+//   - 寫入失敗時回傳該錯誤。
+func (dispatcher *CommandDispatcher) Run(name string, output io.Writer) error {
+	var reply string
 	switch name {
 	case "ping":
-		err = ping(ctx, dispatcher.output)
+		reply = health.Ping()
 	case "status":
-		err = status(ctx, dispatcher.output)
+		reply = deploy.Status()
 	default:
 		return fmt.Errorf("unknown command: %s", name)
 	}
-	if err != nil {
-		return fmt.Errorf("run %s: %w", name, err)
-	}
-	return nil
+	_, err := io.WriteString(output, reply)
+	return err
 }
 ```
 
-- 調整後：將命令選擇資料存在分派器內，執行端提供相同的命令名稱。
+- 判斷：命令由各功能模組提供，是開放集合。核心模組的 `switch` 必須列出每個模組的命令，並匯入它們的 package；新增功能模組時就要修改核心模組。因此命令名稱與處理者的對應由外部註冊：核心模組定義共同的 `CommandHandler`，各功能模組提供符合它的型別，在組裝時交給 `CommandDispatcher`，核心模組只相依 `CommandHandler`。
+
+- 調整後：`NewCommandDispatcher` 把收到的命令建成以名稱索引的分派表，並驗證名稱；`Run` 由這份表找出命令。核心模組不再匯入功能模組。
 
 ```go
-// commandHandler 透過已設定的輸出執行一個命令。
-type commandHandler func(context.Context, io.Writer) error
+package core
 
-// Dispatcher 透過已設定的輸出執行內建命令。
-type Dispatcher struct {
-	output   io.Writer                 // 已完成初始化的命令回覆輸出目的地。
-	handlers map[string]commandHandler // 依命令名稱索引的內建執行行為。
+import (
+	"errors"
+	"fmt"
+	"io"
+	"strings"
+)
+
+// CommandHandler 是一個可由名稱執行的命令。
+type CommandHandler interface {
+	// Name 回傳命令名稱，例如 "ping"。
+	//
+	//   - 名稱必須含非空白文字，且不與其他命令重複。
+	Name() string
+
+	// Run 執行命令並回傳回覆。
+	Run() string
 }
 
-// NewDispatcher 以指定的輸出目的地初始化命令執行器。
+// CommandDispatcher 執行已註冊的命令。
+type CommandDispatcher struct {
+	handlers map[string]CommandHandler // 已註冊的命令，以命令名稱索引。
+}
+
+// NewCommandDispatcher 以各功能模組提供的命令建立命令執行器。
 //
-//   - output 必須是已完成初始化的非 nil writer。
-func NewDispatcher(output io.Writer) *Dispatcher {
-	return &Dispatcher{
-		output: output,
-		handlers: map[string]commandHandler{
-			"ping":   ping,
-			"status": status,
-		},
+//   - 前置條件：handlers 的每個元素必須是非 nil 的值。
+//   - handlers 是要註冊的命令。
+//   - 建立後再修改這個 slice 不影響執行器。
+//   - 名稱為空字串或全空白、或名稱重複時回傳錯誤。
+func NewCommandDispatcher(handlers []CommandHandler) (*CommandDispatcher, error) {
+	table := make(map[string]CommandHandler, len(handlers))
+	for _, handler := range handlers {
+		if err := register(table, handler); err != nil {
+			return nil, err
+		}
 	}
+	return &CommandDispatcher{handlers: table}, nil
 }
 
-// Run 執行 name 指定的內建命令。
+// Run 執行 name 指定的命令，並把回覆寫到 output。
 //
-//   - 分派器必須已透過 NewDispatcher 初始化。
-func (dispatcher *Dispatcher) Run(ctx context.Context, name string) error {
-	handler := dispatcher.handlers[name]
-	if handler == nil {
+//   - 前置條件：output 必須是非 nil 的值。
+//   - name 是命令名稱，例如 "ping"。
+//   - output 是回覆的輸出目的地。
+//   - 未註冊的名稱回傳錯誤，且不寫入輸出。
+//   - 寫入失敗時回傳該錯誤。
+func (dispatcher *CommandDispatcher) Run(name string, output io.Writer) error {
+	handler, ok := dispatcher.handlers[name]
+	if !ok {
 		return fmt.Errorf("unknown command: %s", name)
 	}
-	if err := handler(ctx, dispatcher.output); err != nil {
-		return fmt.Errorf("run %s: %w", name, err)
+	_, err := io.WriteString(output, handler.Run())
+	return err
+}
+
+// register 把一個命令加入分派表。
+//
+//   - 前置條件：table 必須是已建立的 map，handler 必須是非 nil 的值。
+//   - table 是建立中的分派表；handler 是要加入的命令。
+//   - 名稱為空字串或全空白、或名稱已在表中時回傳錯誤。
+func register(table map[string]CommandHandler, handler CommandHandler) error {
+	name := handler.Name()
+	if strings.TrimSpace(name) == "" {
+		return errors.New("command name required")
 	}
+	if _, exists := table[name]; exists {
+		return fmt.Errorf("duplicate command: %s", name)
+	}
+	table[name] = handler
 	return nil
 }
 ```
 
-- 前後都以 `dispatcher := NewDispatcher(output)` 初始化，並以 `err := dispatcher.Run(ctx, "ping")` 執行。`ping` 寫入 `"pong\n"`；`status` 寫入 `"ready\n"`。未註冊的 `missing` 回傳 `unknown command: missing`，且不寫入輸出。
+```go
+package health
 
-- 脈絡已取消時，`ping` 不寫入輸出，並回傳包裝 `context.Canceled` 且附有 `run ping: ` 上下文的錯誤。輸出失敗時，前後都保留錯誤鏈與相同的命令上下文。
+// PingCommand 是健康檢查模組的存活命令。
+type PingCommand struct{}
+
+// Name 回傳命令名稱 "ping"。
+func (PingCommand) Name() string {
+	return "ping"
+}
+
+// Run 回傳存活回覆。
+func (PingCommand) Run() string {
+	return "pong\n"
+}
+```
+
+```go
+package deploy
+
+// StatusCommand 是部署模組的就緒命令。
+type StatusCommand struct{}
+
+// Name 回傳命令名稱 "status"。
+func (StatusCommand) Name() string {
+	return "status"
+}
+
+// Run 回傳就緒回覆。
+func (StatusCommand) Run() string {
+	return "ready\n"
+}
+```
+
+- 這是因為新增跨模組擴充的需求而改變邊界，建立方式因此不同：調整前以 `core.NewCommandDispatcher()` 建立；調整後由組裝處提供命令，並多回傳一個錯誤，例如 `core.NewCommandDispatcher([]core.CommandHandler{health.PingCommand{}, deploy.StatusCommand{}})`。執行呼叫都是 `dispatcher.Run("ping", output)`。
+
+- 前後的結果相同：`ping` 寫入 `"pong\n"`；`status` 寫入 `"ready\n"`；未知的 `missing` 回傳訊息為 `unknown command: missing` 的錯誤，且不寫入輸出。
+
+- 調整後，兩個命令的名稱相同時，`NewCommandDispatcher` 回傳訊息為 `duplicate command: ping` 的錯誤。新增功能模組的命令時，新增一個符合 `CommandHandler` 的型別並在組裝處提供；核心模組不必修改。Go 的 interface 由方法集合隱含滿足，功能模組不需要匯入核心模組。
 
 ## Strategy
 
 - 專案明確要求持續增加各有設定的運費演算法。依重量計費使用起始費與公斤單價，固定費率則使用每次配送費用。以共同的內部計價契約封裝各演算法的設定與計算；服務仍依訂單既有的配送方式欄位逐筆選擇策略，可保留小段選擇分支。
 
-- 共同宣告：各項費率設定與公斤數均允許為零。未知配送方式回傳錯誤；依重量計費的結果超出回傳型別範圍時也回傳錯誤。
+- 共同宣告：兩個 struct 只宣告欄位。各項費率與公斤數的型別是無號整數，不會為負，允許為零。未知的配送方式回傳錯誤；依重量計費的結果超出回傳型別範圍時也回傳錯誤。
 
 ```go
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
-// ShippingConfig 承載各配送方式的既有費率設定。
+// ShippingConfig 是各配送方式的費率設定。
 type ShippingConfig struct {
 	WeightBaseCents  uint64 // 依重量計費的起始費，單位為分；允許為零。
 	FlatCents        uint64 // 固定費率配送的每次費用，單位為分；允許為零。
 	PerKilogramCents uint64 // 每整數公斤的費用，單位為分；允許為零。
 }
 
-// ShippingOrder 承載一次運費報價的配送方式與重量。
+// ShippingOrder 是一次運費報價的配送方式與重量。
 type ShippingOrder struct {
 	Method    string // 配送方式："flat" 或 "weight"。
 	Kilograms uint64 // 整數公斤數；允許為零。
 }
+
+// errFeeOverflow 表示運費超出回傳型別的範圍。
+var errFeeOverflow = errors.New("shipping fee overflow")
 ```
 
 - 調整前：服務內選擇配送方式，並計算其費用。
@@ -159,15 +295,20 @@ type ShippingOrder struct {
 ```go
 // ShippingService 依設定的費率計算運費。
 type ShippingService struct {
-	config ShippingConfig // 服務初始化時設定的費率。
+	config ShippingConfig // 建立服務時設定的費率。
 }
 
-// NewShippingService 依費率設定初始化運費計算服務。
+// NewShippingService 依費率設定建立運費計算服務。
+//
+//   - config 是各配送方式的費率設定。
 func NewShippingService(config ShippingConfig) *ShippingService {
 	return &ShippingService{config: config}
 }
 
-// ShippingFee 計算訂單所選配送方式的運費。
+// ShippingFee 計算訂單所選配送方式的運費，單位為分。
+//
+//   - order 是要報價的訂單。
+//   - 配送方式未知，或結果超出回傳型別的範圍時回傳錯誤。
 func (service *ShippingService) ShippingFee(order ShippingOrder) (uint64, error) {
 	switch order.Method {
 	case "flat":
@@ -175,11 +316,11 @@ func (service *ShippingService) ShippingFee(order ShippingOrder) (uint64, error)
 	case "weight":
 		rate := service.config.PerKilogramCents
 		if rate != 0 && order.Kilograms > ^uint64(0)/rate {
-			return 0, fmt.Errorf("shipping fee overflow")
+			return 0, errFeeOverflow
 		}
 		product := order.Kilograms * rate
 		if product > ^uint64(0)-service.config.WeightBaseCents {
-			return 0, fmt.Errorf("shipping fee overflow")
+			return 0, errFeeOverflow
 		}
 		return service.config.WeightBaseCents + product, nil
 	default:
@@ -188,12 +329,17 @@ func (service *ShippingService) ShippingFee(order ShippingOrder) (uint64, error)
 }
 ```
 
-- 調整後：以相同設定初始化私有策略，選擇責任仍在服務內；呼叫端提供既有的訂單資料。
+- 配送方式由服務管理，因此保留 `switch` 選擇分支。各演算法使用不同的費率，後續還會新增演算法。具名函式可以分開各項計算。這裡採用策略，也讓每種演算法各自保存計算所需的費率。`flatRate` 保存每次配送的費用，`perKilogram` 保存基本費和每公斤費用。服務選定演算法後，統一透過 `Fee(kilograms)` 契約呼叫。
+
+- 調整後：以相同的設定建立私有的策略，選擇責任仍在服務內；呼叫端提供既有的訂單資料。
 
 ```go
 // shippingPolicy 封裝一種已設定的運費演算法。
 type shippingPolicy interface {
-	// Fee 依重量計算運費；結果無法由回傳型別表示時回傳錯誤。
+	// Fee 計算一次配送的運費，單位為分。
+	//
+	//   - kilograms 是整數公斤數；不依重量計費的策略不使用它。
+	//   - 結果超出回傳型別的範圍時回傳錯誤。
 	Fee(kilograms uint64) (uint64, error)
 }
 
@@ -203,6 +349,8 @@ type flatRate struct {
 }
 
 // Fee 回傳已設定的配送費用。
+//
+//   - 不使用重量。
 func (policy flatRate) Fee(_ uint64) (uint64, error) {
 	return policy.cents, nil
 }
@@ -213,25 +361,30 @@ type perKilogram struct {
 	cents     uint64 // 每整數公斤的費用，單位為分。
 }
 
-// Fee 計算依重量計價的運費，拒絕無法由回傳型別表示的結果。
+// Fee 計算依重量計價的運費。
+//
+//   - kilograms 是整數公斤數。
+//   - 結果超出回傳型別的範圍時回傳錯誤。
 func (policy perKilogram) Fee(kilograms uint64) (uint64, error) {
 	if policy.cents != 0 && kilograms > ^uint64(0)/policy.cents {
-		return 0, fmt.Errorf("shipping fee overflow")
+		return 0, errFeeOverflow
 	}
 	product := kilograms * policy.cents
 	if product > ^uint64(0)-policy.baseCents {
-		return 0, fmt.Errorf("shipping fee overflow")
+		return 0, errFeeOverflow
 	}
 	return policy.baseCents + product, nil
 }
 
 // ShippingService 依設定的費率計算運費。
 type ShippingService struct {
-	flat   flatRate    // 已設定的固定費率計算策略。
-	weight perKilogram // 已設定的依重量計費策略。
+	flat   flatRate    // 固定費率的計價策略。
+	weight perKilogram // 依重量計費的計價策略。
 }
 
-// NewShippingService 依費率設定初始化運費計算服務。
+// NewShippingService 依費率設定建立運費計算服務。
+//
+//   - config 是各配送方式的費率設定。
 func NewShippingService(config ShippingConfig) *ShippingService {
 	return &ShippingService{
 		flat:   flatRate{cents: config.FlatCents},
@@ -239,7 +392,10 @@ func NewShippingService(config ShippingConfig) *ShippingService {
 	}
 }
 
-// ShippingFee 計算訂單所選配送方式的運費。
+// ShippingFee 計算訂單所選配送方式的運費，單位為分。
+//
+//   - order 是要報價的訂單。
+//   - 配送方式未知，或結果超出回傳型別的範圍時回傳錯誤。
 func (service *ShippingService) ShippingFee(order ShippingOrder) (uint64, error) {
 	var policy shippingPolicy
 	switch order.Method {
@@ -254,10 +410,11 @@ func (service *ShippingService) ShippingFee(order ShippingOrder) (uint64, error)
 }
 ```
 
-- 前後都以 `service := NewShippingService(config)` 初始化，並以 `fee, err := service.ShippingFee(order)` 執行。公開型別、初始化方式、輸入含意、結果與錯誤均維持相同。策略屬於實作細節。
+- 前後都以 `NewShippingService(config)` 建立，並以 `service.ShippingFee(order)` 執行。公開型別、建立方式、輸入含意、結果與錯誤均維持相同。策略屬於實作細節。
+- 零值 `ShippingService` 對兩種已知的配送方式都回傳 `0, nil`，調整前後一致。
 
-- 設定 `FlatCents: 50`、`PerKilogramCents: 20` 與 `WeightBaseCents: 0` 時，三公斤的 `"flat"` 訂單前後均回傳 `50, nil`，三公斤的 `"weight"` 訂單均回傳 `60, nil`。零公斤時分別回傳 `50, nil` 與 `0, nil`。若依重量計費的起始費為 `10`，上述重量計費結果則為 `70, nil` 與 `10, nil`。所有費率設定均為零時，有效配送方式的費用均為零。
+- 設定 `FlatCents` 為 `50`、`PerKilogramCents` 為 `20`、`WeightBaseCents` 為 `0` 時，三公斤的 `"flat"` 訂單前後均回傳 `50, nil`，三公斤的 `"weight"` 訂單均回傳 `60, nil`。零公斤時分別回傳 `50, nil` 與 `0, nil`。若依重量計費的起始費為 `10`，上述重量計費結果則為 `70, nil` 與 `10, nil`。
 
-- 方法為 `"drone"` 時，前後均回傳 `0` 與 `unknown delivery method: drone`。乘法與加法溢位均回傳 `0` 與 `shipping fee overflow`，例如公斤單價 `20` 搭配 `^uint64(0)` 公斤，或起始費 `^uint64(0)` 搭配一公斤、公斤單價 `1`。調整後，這些檢查僅位於 `perKilogram.Fee`。
+- 配送方式為 `"drone"` 時，前後均回傳 `0` 與訊息為 `unknown delivery method: drone` 的錯誤。乘法與加法溢位均回傳 `0` 與訊息為 `shipping fee overflow` 的錯誤，例如公斤單價 `20` 搭配 `^uint64(0)` 公斤，或起始費 `^uint64(0)` 搭配一公斤、公斤單價 `1`。調整後，這些計算只位於 `perKilogram.Fee`。
 
-- 新演算法可能需要調整內部選擇與組裝；既有操作呼叫端不必選擇策略物件。若初始化需要新增必填設定，檢查其建立與載入來源，並依[變更原則](../SKILL_ch.md#變更原則)處理相容性。
+- 新增演算法時只調整服務內部的選擇與組裝；既有的呼叫端不必選擇策略物件。

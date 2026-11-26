@@ -36,9 +36,21 @@
 
 - 必須依此順序組織內容：這個組裝交付什麼 → 關係與 data flow 圖 → 下一層節點清單，每個節點附一句話說明它在這裡扮演的角色。不適用的段落可以省略，嚴禁改變順序。
 - 必須以「組裝起來的整體」為主題：一項業務需求交付了什麼、一段架構如何成立、一條端到端的 data flow 流經哪裡。讀者是為了結果而來，不是為了零件清單。
-- 必須用 Mermaid 呈現這些關係，並必須連結它下面一層的節點：monorepo 中位於 repository 根目錄的 `bd-*.md` 連到每一份參與其中的 submodule `bd-*.md`，且嚴禁越過它們直接連到它們的模組；其餘的 `bd-*.md` 則連到自己 scope 內每一份參與其中的 `sd-*.md`。
+- Mermaid 圖只能呈現結構角色及其關係與資料流規則。角色必須以 `api.<module>` 等佔位名稱表示。嚴禁在圖中列舉實際套件或模組。
+- 每條相依箭頭都必須對應程式碼中的相依關係，例如 `import`。可以繪製尚未實作的角色或相依關係。文件必須標明它是未來模組必須遵守的樣式，並寫出每條規劃中相依箭頭預期對應的程式碼相依關係。
+- Markdown 連結清單必須列出下一層的實際節點。monorepo 根目錄的 `bd-*.md` 必須連到每份參與組裝的 submodule `bd-*.md`，嚴禁跨層直接連到其中的模組。其餘 `bd-*.md` 必須連到同一 scope 內每份參與組裝的 `sd-*.md`。
+- 新增沿用相同規則的既有角色實例時，只能更新連結清單。只有角色類型或關係規則改變時，才可更新圖。
+- Mermaid 標籤中的字面 `<` 和 `>` 必須分別寫成 `#lt;` 和 `#gt;`，以便渲染器將它們顯示為文字。
 - 嚴禁下沉到單一模組內部怎麼運作——那屬於它所連結的 `sd-*.md`。一份在解釋單一模組規則的 `bd-*.md`，等於是放錯位置的設計文件。
 - 不受行數上限限制；300 行那條規則只約束設計文件，永遠不涵蓋 `-perf` 紀錄。
+
+- 例：每個 API 套件都匯入同一模組的服務與服務模型。若新增的 `orders` 沿用這些規則，只需加入其設計文件連結。
+
+```mermaid
+flowchart TD
+    Api["api.#lt;module#gt;"] -->|"imports"| Service["service.#lt;module#gt;"]
+    Api -->|"imports"| Model["service.#lt;module#gt;.model"]
+```
 
 ## 撰寫規則 — leaf
 
@@ -83,17 +95,17 @@
 - 若目標程式碼尚未存在，該連結是規劃路徑。規劃路徑只是暫時的位置標記，不是介面定義，嚴禁把它當成介面定義使用。
 - 面對規劃路徑時，本階段必須把自己限制在行為邊界、輸入與輸出語意，以及職責歸屬。精確的介面由 Phase 2 在建立最小骨架時產生，並由 Phase 2 在它的確認 gate 之前把連結收斂到真實目標。
 - 每一條規劃連結都必須在其緊接之後標上 `(planned)`：先是一條像 `[OrderValidator](internal/order/validator.go)` 這樣的連結，接著是該標記，中間最多一個空白。後續讀者因此分得出哪些是承諾、哪些是事實。Phase 2 收斂該連結時會拿掉這個標記。
-- 執行 [list_planned.py](../scripts/list_planned.py)——與下方計數器同樣位於 `<skill-root>/scripts/`——即可列出一份文件裡還沒兌現的承諾。它只認緊跟在 Markdown link 之後的標記，因此散文中出現的同一個詞永遠不會被誤判。
+- 執行 [list-planned.mjs](../scripts/list-planned.mjs)——與下方計數器同樣位於 `<skill-root>/scripts/`——即可列出一份文件裡還沒兌現的承諾。它只認緊跟在 Markdown link 之後的標記，因此散文中出現的同一個詞永遠不會被誤判。
 
 ## 行數計算
 
 - 計數行 = 檔案總行數扣除所有 `mermaid` 圍欄區塊的行數（含圍欄）。空行、標題、frontmatter 與純連結行一律計入。
 - Mermaid 區塊必須使用剛好三個反引號與小寫的 `mermaid` 標記，且必須從第一欄開始、前面不得有任何空白。嚴禁使用四個反引號圍欄、波浪號圍欄，也嚴禁把圖縮排放進清單項目或引用區塊——計數器會把其他形式一律讀成一般文字，結果是把行數算高而不是把行數藏起來，而且大型圖表放在容器裡本來就不好讀。
-- 執行本 skill 內的 [count_lines.py](../scripts/count_lines.py)，傳入一個或多個文件路徑。它會逐檔印出 `<行數>` 與路徑；遇到未關閉的 Mermaid 區塊時以非零狀態碼結束。
-- 腳本位於 `<skill-root>/scripts/count_lines.py`，其中 `<skill-root>` 是存放本 skill `SKILL.md` 的目錄——也就是本檔案所在 `references/` 目錄的上一層。必須從本檔案被載入的位置推導出該路徑，嚴禁寫死任何安裝路徑：本 skill 以 plugin 形式分發，會落在宿主安裝它的任何位置。
+- 執行本 skill 內的 [count-lines.mjs](../scripts/count-lines.mjs)，傳入一個或多個文件路徑。它會逐檔印出 `<行數>` 與路徑；遇到未關閉的 Mermaid 區塊時以非零狀態碼結束。
+- 腳本位於 `<skill-root>/scripts/count-lines.mjs`，其中 `<skill-root>` 是存放本 skill `SKILL.md` 的目錄——也就是本檔案所在 `references/` 目錄的上一層。必須從本檔案被載入的位置推導出該路徑，嚴禁寫死任何安裝路徑：本 skill 以 plugin 形式分發，會落在宿主安裝它的任何位置。
 
 ```bash
-python <skill-root>/scripts/count_lines.py path/to/sd-feature.md
+node <skill-root>/scripts/count-lines.mjs path/to/sd-feature.md
 ```
 
 - 每次撰寫與每次修改之後都必須重新計數。
@@ -123,12 +135,12 @@ python <skill-root>/scripts/count_lines.py path/to/sd-feature.md
 5. 把該文件呈給使用者並取得確認。在取得確認之前，嚴禁撰寫任何子層文件。
 6. 下降到每一份子層 `sd-*.md`，從步驟 4 重複。
 7. 當某節點的計數行不超過 300，且描述的是具體模組行為而非組裝關係時，停止下降。該節點即為 leaf。
-8. 每寫完一個節點就更新它的 Mermaid，並把目標已經存在的那些邊上的 `(planned)` 標記拿掉。
+8. 每寫完一個節點，就更新指向該節點的連結清單，並移除所有目標已存在的連結上的 `(planned)` 標記。只有角色類型或關係規則改變時，才更新組裝文件的圖。設計文件的圖必須符合 leaf 或 overview 的撰寫規則。
 9. partial leaf 與「依賴它的那份 leaf」在同一輪中寫出並取得確認。它是循那條依賴抵達的，而不是從上層下降抵達的，嚴禁因此讓它未經確認就留下——使用者必須認可它確實描述了既有程式碼。
 
 ## 產出物
 
 - 一份或多份 `sd-*.md`，且每一份都在自己那一層取得使用者確認。
-- 路徑上每一份 `bd-*.md` 都已更新連結與 Mermaid，並逐一節點取得使用者確認。
-- 路徑上任何一條邊都不再帶有 `(planned)` 標記——每一個規劃中的節點都已存在。用 [list_planned.py](../scripts/list_planned.py) 驗證：指向 `.md` 文件的項目必須已經消失，指向程式碼的項目則會留到 Phase 2 把介面建出來為止。
+- 路徑上每一份 `bd-*.md` 都已列出最新的下一層節點連結，Mermaid 圖也符合目前的角色類型與關係規則。使用者已逐一確認各節點的文件。
+- 路徑上任何一條邊都不再帶有 `(planned)` 標記——每一個規劃中的節點都已存在。用 [list-planned.mjs](../scripts/list-planned.mjs) 驗證：指向 `.md` 文件的項目必須已經消失，指向程式碼的項目則會留到 Phase 2 把介面建出來為止。
 - 每一條分支都終止於 leaf，使 Phase 2 具備合法輸入。為既有程式碼而進場的 partial leaf，對本階段而言同樣算完成，但它不是本輪產出的那個輸入——Phase 2 要去處理的是「正在建置該功能」的那份 leaf。

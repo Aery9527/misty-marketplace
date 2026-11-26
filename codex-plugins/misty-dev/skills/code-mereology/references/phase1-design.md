@@ -38,9 +38,21 @@ This section plans the graph — which nodes exist and which edges join them. No
 
 - MUST organize the document in this order: what the assembly delivers, the relationship and data-flow diagram, then the nodes one level below with a line each on the part it plays. A section that does not apply MAY be omitted; the order MUST NOT change.
 - MUST take the assembled whole as its subject: what a business requirement delivers, how an architecture holds together, where an end-to-end data flow runs. The reader arrives wanting the outcome, not the parts list.
-- MUST show the relationships in Mermaid, and MUST link the nodes one level below it: a repository-root `bd-*.md` in a monorepo links to each submodule `bd-*.md` taking part and MUST NOT reach past them into their modules; every other `bd-*.md` links to each `sd-*.md` in its own scope that takes part.
+- The Mermaid diagram MUST show only structural roles and the rules governing their relationships and data flow. MUST use placeholder names such as `api.<module>` for roles. The diagram MUST NOT enumerate concrete packages or modules.
+- Each dependency arrow MUST correspond to a dependency in code, such as an import. MAY draw a role or dependency that has no implementation yet. The document MUST identify it as a pattern that future modules must follow and specify the code dependency expected for each planned arrow.
+- The Markdown link list MUST identify the concrete nodes one level below. A repository-root `bd-*.md` in a monorepo MUST link to each participating submodule `bd-*.md` and MUST NOT reach past them into their modules. Every other `bd-*.md` MUST link to each participating `sd-*.md` in its own scope.
+- When adding an instance of an existing role under the same rules, MUST update only the link list. A change to the diagram MUST reflect a change to a role type or a relationship rule.
+- In Mermaid labels, MUST escape literal `<` and `>` as `#lt;` and `#gt;` so the renderer displays them as text.
 - MUST NOT sink into how any single module behaves internally — that belongs to the `sd-*.md` it links to. A `bd-*.md` explaining one module's rules has become a design document in the wrong place.
 - Carries no line limit; the 300-line rule binds design documents only, and never a `-perf` record.
+
+- Example — Each API package imports the service and service model for the same module. Adding `orders` under these rules adds its design document links without changing the diagram.
+
+```mermaid
+flowchart TD
+    Api["api.#lt;module#gt;"] -->|"imports"| Service["service.#lt;module#gt;"]
+    Api -->|"imports"| Model["service.#lt;module#gt;.model"]
+```
 
 ## Writing Rules — Leaf
 
@@ -87,17 +99,17 @@ of the module is described when someone is next working in it.
 - If the target code does not exist yet, the link is a planned path. A planned path is a temporary location marker, not an interface definition — it MUST NOT be treated as one.
 - For planned paths, this phase MUST confine itself to behavior boundaries, input and output semantics, and ownership. The exact interface is created by Phase 2 as part of the minimum skeleton, and Phase 2 resolves the link before its confirmation gate.
 - Every planned link MUST carry `(planned)` immediately after it: a link written as `[OrderValidator](internal/order/validator.go)`, then the marker, with a single space between them at most. A later reader can then tell a promise from a fact. Phase 2 drops the marker when it resolves the link.
-- Run [list_planned.py](../scripts/list_planned.py) — the same `<skill-root>/scripts/` directory as the counter below — to list the open promises in a document. It reports only a marker that follows a Markdown link, so the word appearing in ordinary prose is never mistaken for one.
+- Run [list-planned.mjs](../scripts/list-planned.mjs) — the same `<skill-root>/scripts/` directory as the counter below — to list the open promises in a document. It reports only a marker that follows a Markdown link, so the word appearing in ordinary prose is never mistaken for one.
 
 ## Line Counting
 
 - Counted lines = total file lines minus every line inside a `mermaid` fenced block, fence lines included. Blank lines, headings, frontmatter, and link-only lines all count.
 - Mermaid blocks MUST use exactly three backticks and the lower-case `mermaid` info string, and MUST start in column one. Four-backtick fences, tilde fences, and diagrams indented inside a list item or blockquote MUST NOT be used — the counter reads anything else as ordinary text, which inflates the count rather than hiding lines from it, and a large diagram reads poorly inside a container anyway.
-- Run [count_lines.py](../scripts/count_lines.py) from this skill, passing one or more document paths. It prints `<count>` and the path per file, and exits non-zero on a Mermaid block that is never closed.
-- The script lives at `<skill-root>/scripts/count_lines.py`, where `<skill-root>` is the directory holding this skill's `SKILL.md` — the parent of the `references/` directory this file sits in. MUST resolve that path from where this file was loaded from, and MUST NOT hard-code an installation path: the skill is distributed as a plugin and lands wherever the host installs it.
+- Run [count-lines.mjs](../scripts/count-lines.mjs) from this skill, passing one or more document paths. It prints `<count>` and the path per file, and exits non-zero on a Mermaid block that is never closed.
+- The script lives at `<skill-root>/scripts/count-lines.mjs`, where `<skill-root>` is the directory holding this skill's `SKILL.md` — the parent of the `references/` directory this file sits in. MUST resolve that path from where this file was loaded from, and MUST NOT hard-code an installation path: the skill is distributed as a plugin and lands wherever the host installs it.
 
 ```bash
-python <skill-root>/scripts/count_lines.py path/to/sd-feature.md
+node <skill-root>/scripts/count-lines.mjs path/to/sd-feature.md
 ```
 
 - MUST count after every write and every revision.
@@ -128,12 +140,12 @@ Walk the planned graph downward, one node at a time. All writing happens here, a
 5. Present that document and obtain confirmation. MUST NOT write any child before that confirmation.
 6. Descend to each child `sd-*.md` and repeat from step 4.
 7. Stop descending when a node is at or under 300 counted lines and describes concrete module behavior rather than composition. That node is a leaf.
-8. As each node is written, update its Mermaid, and drop the `(planned)` marker from every edge whose target now exists.
+8. As each node is written, update the link lists that reference it and remove the `(planned)` marker from every link whose target now exists. Update assembly diagrams only when role types or relationship rules change. Keep design document diagrams consistent with their leaf or overview writing rules.
 9. A partial leaf is written and confirmed in the same run as the leaf that depends on it. It is reached through that dependency rather than by descending from a parent, and that MUST NOT leave it unconfirmed — the user has to agree it describes the existing code correctly.
 
 ## Exit Artifacts
 
 - One or more `sd-*.md`, each confirmed by the user at its own level.
-- Every `bd-*.md` on the path updated with the new links and Mermaid, and confirmed by the user one node at a time.
-- No `(planned)` marker left on any edge along the path — every planned node now exists. Verify with [list_planned.py](../scripts/list_planned.py): entries pointing at a `.md` document MUST be gone, while entries pointing at code stay until Phase 2 builds the interface.
+- Every `bd-*.md` on the path has current links to its next-level nodes and a Mermaid diagram that reflects the current role types and relationship rules. The user has confirmed each document one node at a time.
+- No `(planned)` marker left on any edge along the path — every planned node now exists. Verify with [list-planned.mjs](../scripts/list-planned.mjs): entries pointing at a `.md` document MUST be gone, while entries pointing at code stay until Phase 2 builds the interface.
 - Every branch terminated in a leaf, so Phase 2 has a valid input. A partial leaf entered for code that already runs is finished for this phase too, but it is not the input this run produced — Phase 2 goes to the leaf the feature is being built in.

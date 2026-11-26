@@ -569,7 +569,38 @@ test("the evidence line names the threshold that actually withheld the diff", ()
   assert.match(result.stdout, /not supplied inline because 3 changed file\(s\) exceeds the inline limit of 2/);
   assert.doesNotMatch(result.stdout, /too large/);
   assert.doesNotMatch(result.stdout, /exceeds the inline limit of \d+ bytes/);
+  assert.match(result.stdout, /the bridge captured no tracked diff content/);
   assert.match(result.stdout, /3 untracked file\(s\) were included with their contents/);
+});
+
+test("對抗式審查讓 Claude 在同一回合讀到超限差異中的刪除行", () => {
+  const binDir = makeTempDir();
+  installFakeClaude(binDir, "ready");
+  const cwd = makeWorkspace();
+  fs.writeFileSync(path.join(cwd, "README.md"), "replacement\n", "utf8");
+  fs.writeFileSync(path.join(cwd, "one.txt"), "tiny\n", "utf8");
+  fs.writeFileSync(path.join(cwd, "two.txt"), "tiny\n", "utf8");
+  const capture = path.join(makeTempDir(), "patches.json");
+  const argvFile = path.join(makeTempDir(), "argv.json");
+
+  const result = runCompanion(["adversarial-review", "--json"], {
+    cwd,
+    env: { ...isolatedEnv(binDir), FAKE_CLAUDE_PATCHES_FILE: capture, FAKE_CLAUDE_ARGV_FILE: argvFile }
+  });
+
+  assert.equal(result.status, 0, result.stderr);
+  const payload = JSON.parse(result.stdout);
+  assert.equal(payload.context.inputMode, "patch-files");
+  assert.match(payload.evidenceNote, /wrote \d+ bytes of tracked diff to 1 temporary patch file/);
+  assert.match(payload.evidenceNote, /does not verify which portions Claude read/);
+  assert.match(payload.evidenceNote, /2 untracked file\(s\) were included with their contents/);
+  const [patch] = JSON.parse(fs.readFileSync(capture, "utf8"));
+  const argv = JSON.parse(fs.readFileSync(argvFile, "utf8"));
+  assert.deepEqual(argv.slice(argv.indexOf("--add-dir"), argv.indexOf("--add-dir") + 2), ["--add-dir", path.dirname(patch.path)]);
+  assert.match(patch.contents, /^-# fixture/m);
+  assert.match(patch.contents, /^\+replacement/m);
+  assert.equal(payload.context.diffBytes, Buffer.byteLength(patch.contents, "utf8"));
+  assert.equal(fs.existsSync(path.dirname(patch.path)), false);
 });
 
 // An untracked file contributes no diff, so counting it against the diff would credit
@@ -818,6 +849,8 @@ test("cancel stops a running background review and records it as cancelled", asy
   const binDir = makeTempDir();
   installFakeClaude(binDir, "slow-turn-no-interrupt");
   const cwd = makeDirtyWorkspace();
+  fs.writeFileSync(path.join(cwd, "one.txt"), "tiny\n");
+  fs.writeFileSync(path.join(cwd, "two.txt"), "tiny\n");
   const env = isolatedEnv(binDir);
 
   const queued = JSON.parse(runCompanion(["adversarial-review", "--background", "--json", "SLOW"], { cwd, env }).stdout);
@@ -826,6 +859,8 @@ test("cancel stops a running background review and records it as cancelled", asy
     queued.jobId,
     (job) => job?.status === "running" && Number.isInteger(job.pid) && Boolean(job.claudeSessionId)
   );
+  const patchDirectory = path.join(path.dirname(queued.jobFile), `${queued.jobId}.patches`);
+  assert.equal(fs.existsSync(path.join(patchDirectory, "unstaged.patch")), true);
 
   const cancelled = JSON.parse(runCompanion(["cancel", queued.jobId, "--json"], { cwd, env }).stdout);
   assert.equal(cancelled.status, "cancelled");
@@ -834,6 +869,7 @@ test("cancel stops a running background review and records it as cancelled", asy
   await new Promise((resolve) => setTimeout(resolve, 500));
   const snapshot = JSON.parse(runCompanion(["status", queued.jobId, "--json"], { cwd, env }).stdout);
   assert.equal(snapshot.job.status, "cancelled");
+  assert.equal(fs.existsSync(patchDirectory), false);
 
   const stored = runCompanion(["result", queued.jobId], { cwd, env });
   assert.match(stored.stdout, /The job did not produce output: Cancelled by user\./);

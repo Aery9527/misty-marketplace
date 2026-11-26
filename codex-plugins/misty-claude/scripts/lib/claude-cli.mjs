@@ -155,6 +155,9 @@ export function buildBaseArgs(options) {
   if (options.permissionMode) {
     args.push("--permission-mode", options.permissionMode);
   }
+  if (options.additionalDirectory) {
+    args.push("--add-dir", options.additionalDirectory);
+  }
   // `--tools` filters built-ins only, so a session that must not write also has to shut
   // the user's MCP servers out; otherwise an MCP write tool stays registered.
   if (options.strictMcpConfig) {

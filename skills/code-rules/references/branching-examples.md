@@ -1,11 +1,66 @@
 # Branching Examples
 
-- These examples use Go; adapt the syntax and input types to the target language.
+- These examples use Go; adapt the syntax and types to the target language.
+- Each section is a refactoring scenario for teaching: the implementation before the change comes first, then the assessment and the implementation after the change; the two implementations are alternatives, and declarations of the same name do not exist together. In a section with shared declarations, both implementations use them.
+- `Fixed Cases` and `Strategy` are internal refactorings: creation and the operation call are the same before and after the change, and only the internal implementation changes. `Dispatch Table` changes the way of creation, because of a new requirement for extension across modules.
 
-- Fixed cases: the requirement defines only active and paused status labels, with unknown values displayed as `Unknown`. Keep a `switch`.
+## Fixed Cases
+
+- The requirements define only the two status labels active and paused, and an unknown value shows `Unknown`; no requirement shows that the statuses will keep growing.
+
+- Before: a Strategy and a registry provide the two fixed labels.
 
 ```go
-// StatusLabel provides the display label for an account status.
+// statusLabel provides the display label of one account status.
+type statusLabel interface {
+	// Label returns the display label.
+	Label() string
+}
+
+// activeLabel is the label of the active status.
+type activeLabel struct{}
+
+// Label returns the display label of the active status.
+func (activeLabel) Label() string {
+	return "Active"
+}
+
+// pausedLabel is the label of the paused status.
+type pausedLabel struct{}
+
+// Label returns the display label of the paused status.
+func (pausedLabel) Label() string {
+	return "Paused"
+}
+
+// statusLabels is the registry of labels, indexed by status.
+var statusLabels = map[string]statusLabel{
+	"active": activeLabel{},
+	"paused": pausedLabel{},
+}
+
+// StatusLabel returns the display label of an account status.
+//
+//   - status is the account status, e.g. "active".
+//   - An unknown status returns "Unknown".
+func StatusLabel(status string) string {
+	label, ok := statusLabels[status]
+	if !ok {
+		return "Unknown"
+	}
+	return label.Label()
+}
+```
+
+- Assessment: each of the two branches only returns one fixed string, with no independent logic of its own; no requirement shows that the statuses will keep growing either. `statusLabel`, its two implementations, and the registry answer no extension requirement, and only add reading cost. So the code goes back to a `switch`.
+
+- After: `StatusLabel` lists the two statuses directly in a `switch`.
+
+```go
+// StatusLabel returns the display label of an account status.
+//
+//   - status is the account status, e.g. "active".
+//   - An unknown status returns "Unknown".
 func StatusLabel(status string) string {
 	switch status {
 	case "active":
@@ -18,156 +73,242 @@ func StatusLabel(status string) string {
 }
 ```
 
-- The following are illustrative refactorings. For each pair, put the shared declarations first in one file, followed by either the before or the after implementation. The two implementations are alternatives. In these examples, construction and execution calls stay unchanged while private fields, internal assembly, and operation internals change.
+- Both are called as `StatusLabel(status)`, with the same results: `"active"` returns `"Active"`, `"paused"` returns `"Paused"`, and any other value returns `"Unknown"`.
 
 ## Dispatch Table
 
-- The project explicitly requires more built-in commands using the existing output dependency. Move command-handler associations from a private switch to an internal table. New commands change internal registration rather than `Run`; public construction and execution calls stay the same.
+- The core module provides the command dispatcher, and each feature module provides its own commands: the health module provides `ping`, and the deployment module provides `status`. The project explicitly requires that adding a feature module does not change the core module.
+- Each code block is one file of one package; the module path is `example.com/app` as an example.
 
-- Shared declarations:
+- Before: `CommandDispatcher` in the core module lists the commands of each module in a `switch`, and calls the functions of each module directly.
 
 ```go
-import (
-	"context"
-	"fmt"
-	"io"
-)
+package health
 
-// ping writes the command's liveness reply.
-func ping(ctx context.Context, output io.Writer) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-	_, err := fmt.Fprintln(output, "pong")
-	return err
-}
-
-// status writes the command's readiness reply.
-func status(ctx context.Context, output io.Writer) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-	_, err := fmt.Fprintln(output, "ready")
-	return err
+// Ping returns the liveness reply.
+func Ping() string {
+	return "pong\n"
 }
 ```
 
-- Before: select each built-in command in `Run`.
+```go
+package deploy
+
+// Status returns the readiness reply.
+func Status() string {
+	return "ready\n"
+}
+```
 
 ```go
-// Dispatcher executes built-in commands using the configured output.
-type Dispatcher struct {
-	output io.Writer // Initialized destination for command replies.
+package core
+
+import (
+	"fmt"
+	"io"
+
+	"example.com/app/deploy"
+	"example.com/app/health"
+)
+
+// CommandDispatcher runs the commands of the feature modules.
+type CommandDispatcher struct{}
+
+// NewCommandDispatcher creates a command dispatcher.
+func NewCommandDispatcher() *CommandDispatcher {
+	return &CommandDispatcher{}
 }
 
-// NewDispatcher initializes command execution with its output destination.
+// Run runs the command that name selects, and writes the reply to output.
 //
-//   - output must be an initialized, non-nil writer.
-func NewDispatcher(output io.Writer) *Dispatcher {
-	return &Dispatcher{output: output}
-}
-
-// Run executes the built-in command identified by name.
-//
-//   - The dispatcher must have been initialized by NewDispatcher.
-func (dispatcher *Dispatcher) Run(ctx context.Context, name string) error {
-	var err error
+//   - Precondition: output must be a non-nil value.
+//   - name is the command name, e.g. "ping".
+//   - output is the destination of the reply.
+//   - An unknown name returns an error, and nothing is written to the output.
+//   - A write failure returns that error.
+func (dispatcher *CommandDispatcher) Run(name string, output io.Writer) error {
+	var reply string
 	switch name {
 	case "ping":
-		err = ping(ctx, dispatcher.output)
+		reply = health.Ping()
 	case "status":
-		err = status(ctx, dispatcher.output)
+		reply = deploy.Status()
 	default:
 		return fmt.Errorf("unknown command: %s", name)
 	}
-	if err != nil {
-		return fmt.Errorf("run %s: %w", name, err)
-	}
-	return nil
+	_, err := io.WriteString(output, reply)
+	return err
 }
 ```
 
-- After: keep command selection data in the dispatcher; execution callers supply the same command name.
+- Assessment: the feature modules provide the commands, so they are an open set. The `switch` in the core module has to list the commands of every module and import their packages; adding a feature module then changes the core module. So the mapping from a command name to its handler is registered from outside: the core module defines the common `CommandHandler`, each feature module provides a type that satisfies it and hands it to `CommandDispatcher` at assembly, and the core module depends only on `CommandHandler`.
+
+- After: `NewCommandDispatcher` builds the commands it receives into a dispatch table indexed by name, and validates the names; `Run` finds the command in this table. The core module no longer imports the feature modules.
 
 ```go
-// commandHandler performs one command using the configured output.
-type commandHandler func(context.Context, io.Writer) error
+package core
 
-// Dispatcher executes built-in commands using the configured output.
-type Dispatcher struct {
-	output   io.Writer                 // Initialized destination for command replies.
-	handlers map[string]commandHandler // Built-in behaviors indexed by command name.
+import (
+	"errors"
+	"fmt"
+	"io"
+	"strings"
+)
+
+// CommandHandler is a command that can be run by its name.
+type CommandHandler interface {
+	// Name returns the command name, e.g. "ping".
+	//
+	//   - The name must hold non-whitespace text, and must not repeat the name of another command.
+	Name() string
+
+	// Run runs the command and returns the reply.
+	Run() string
 }
 
-// NewDispatcher initializes command execution with its output destination.
+// CommandDispatcher runs the registered commands.
+type CommandDispatcher struct {
+	handlers map[string]CommandHandler // Registered commands, indexed by command name.
+}
+
+// NewCommandDispatcher creates a command dispatcher with the commands that the feature modules provide.
 //
-//   - output must be an initialized, non-nil writer.
-func NewDispatcher(output io.Writer) *Dispatcher {
-	return &Dispatcher{
-		output: output,
-		handlers: map[string]commandHandler{
-			"ping":   ping,
-			"status": status,
-		},
+//   - Precondition: each element of handlers must be a non-nil value.
+//   - handlers are the commands to register.
+//   - Changing this slice after creation does not affect the dispatcher.
+//   - It returns an error when a name is an empty string or all whitespace, or when a name repeats.
+func NewCommandDispatcher(handlers []CommandHandler) (*CommandDispatcher, error) {
+	table := make(map[string]CommandHandler, len(handlers))
+	for _, handler := range handlers {
+		if err := register(table, handler); err != nil {
+			return nil, err
+		}
 	}
+	return &CommandDispatcher{handlers: table}, nil
 }
 
-// Run executes the built-in command identified by name.
+// Run runs the command that name selects, and writes the reply to output.
 //
-//   - The dispatcher must have been initialized by NewDispatcher.
-func (dispatcher *Dispatcher) Run(ctx context.Context, name string) error {
-	handler := dispatcher.handlers[name]
-	if handler == nil {
+//   - Precondition: output must be a non-nil value.
+//   - name is the command name, e.g. "ping".
+//   - output is the destination of the reply.
+//   - An unregistered name returns an error, and nothing is written to the output.
+//   - A write failure returns that error.
+func (dispatcher *CommandDispatcher) Run(name string, output io.Writer) error {
+	handler, ok := dispatcher.handlers[name]
+	if !ok {
 		return fmt.Errorf("unknown command: %s", name)
 	}
-	if err := handler(ctx, dispatcher.output); err != nil {
-		return fmt.Errorf("run %s: %w", name, err)
+	_, err := io.WriteString(output, handler.Run())
+	return err
+}
+
+// register adds one command to the dispatch table.
+//
+//   - Precondition: table must be a created map, and handler must be a non-nil value.
+//   - table is the dispatch table under construction; handler is the command to add.
+//   - It returns an error when the name is an empty string or all whitespace, or when the name is already in the table.
+func register(table map[string]CommandHandler, handler CommandHandler) error {
+	name := handler.Name()
+	if strings.TrimSpace(name) == "" {
+		return errors.New("command name required")
 	}
+	if _, exists := table[name]; exists {
+		return fmt.Errorf("duplicate command: %s", name)
+	}
+	table[name] = handler
 	return nil
 }
 ```
 
-- In both versions, construct with `dispatcher := NewDispatcher(output)` and execute with `err := dispatcher.Run(ctx, "ping")`. `ping` writes `"pong\n"`; `status` writes `"ready\n"`. An unregistered `missing` returns `unknown command: missing` without writing.
+```go
+package health
 
-- If the context is already canceled, `ping` writes nothing and returns an error wrapping `context.Canceled` with `run ping: ` context. Output failures retain their error chain with the same command context in both versions.
+// PingCommand is the liveness command of the health module.
+type PingCommand struct{}
+
+// Name returns the command name "ping".
+func (PingCommand) Name() string {
+	return "ping"
+}
+
+// Run returns the liveness reply.
+func (PingCommand) Run() string {
+	return "pong\n"
+}
+```
+
+```go
+package deploy
+
+// StatusCommand is the readiness command of the deployment module.
+type StatusCommand struct{}
+
+// Name returns the command name "status".
+func (StatusCommand) Name() string {
+	return "status"
+}
+
+// Run returns the readiness reply.
+func (StatusCommand) Run() string {
+	return "ready\n"
+}
+```
+
+- This changes the boundary because of a new requirement for extension across modules, so the way of creation differs: before the change, `core.NewCommandDispatcher()` creates the dispatcher; after the change, the assembly code provides the commands, and the call returns one more value, an error, e.g. `core.NewCommandDispatcher([]core.CommandHandler{health.PingCommand{}, deploy.StatusCommand{}})`. The operation call is `dispatcher.Run("ping", output)` in both.
+
+- The results are the same before and after: `ping` writes `"pong\n"`; `status` writes `"ready\n"`; the unknown `missing` returns an error with the message `unknown command: missing`, and writes nothing to the output.
+
+- After the change, when two commands have the same name, `NewCommandDispatcher` returns an error with the message `duplicate command: ping`. To add a command of a feature module, add a type that satisfies `CommandHandler` and provide it at assembly; the core module does not change. A Go interface is satisfied implicitly by the method set, so a feature module does not need to import the core module.
 
 ## Strategy
 
-- The project explicitly requires more delivery-pricing algorithms, each with its own settings. Weight-based pricing combines an initial charge with a per-kilogram rate; flat pricing uses a per-delivery charge. Encapsulate each algorithm's settings and calculation behind a shared internal pricing contract. The service still selects a policy per order using the existing delivery-method field; a small selection branch may remain.
+- The project explicitly requires a growing set of shipping fee algorithms, each with its own settings. Charging by weight uses a base fee and a price per kilogram, and the flat rate uses a fee per delivery. A common internal pricing contract encapsulates the settings and the calculation of each algorithm; the service still selects the strategy for each order from the existing delivery method field of the order, and may keep a small selecting branch.
 
-- Shared declarations: all rate settings and kilograms may be zero. An unknown method returns an error; a weight-based charge that exceeds the result type also returns an error.
+- Shared declarations: the two structs declare only fields. The rates and the kilograms are unsigned integers, so they are never negative, and zero is allowed. An unknown delivery method returns an error; so does a fee charged by weight that exceeds the range of the return type.
 
 ```go
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
-// ShippingConfig contains the existing rates for delivery methods.
+// ShippingConfig is the rate settings of the delivery methods.
 type ShippingConfig struct {
-	WeightBaseCents  uint64 // Initial charge for weight-based delivery, in cents; zero is valid.
-	FlatCents        uint64 // Charge per flat-rate delivery, in cents; zero is valid.
-	PerKilogramCents uint64 // Charge per whole kilogram, in cents; zero is valid.
+	WeightBaseCents  uint64 // Base fee of charging by weight, in cents; zero is allowed.
+	FlatCents        uint64 // Fee per delivery of the flat rate, in cents; zero is allowed.
+	PerKilogramCents uint64 // Fee per whole kilogram, in cents; zero is allowed.
 }
 
-// ShippingOrder contains the delivery choice and weight for one quote.
+// ShippingOrder is the delivery method and the weight of one shipping quote.
 type ShippingOrder struct {
 	Method    string // Delivery method: "flat" or "weight".
-	Kilograms uint64 // Weight in whole kilograms; zero is valid.
+	Kilograms uint64 // Weight in whole kilograms; zero is allowed.
 }
+
+// errFeeOverflow reports that the shipping fee exceeds the range of the return type.
+var errFeeOverflow = errors.New("shipping fee overflow")
 ```
 
-- Before: select the delivery method and calculate its charge in the service.
+- Before: the service selects the delivery method and calculates its fee.
 
 ```go
-// ShippingService calculates delivery charges using configured rates.
+// ShippingService calculates shipping fees from the configured rates.
 type ShippingService struct {
-	config ShippingConfig // Rates selected when the service is initialized.
+	config ShippingConfig // Rates set when the service was created.
 }
 
-// NewShippingService initializes delivery pricing from its rate configuration.
+// NewShippingService creates a shipping fee service from the rate settings.
+//
+//   - config is the rate settings of the delivery methods.
 func NewShippingService(config ShippingConfig) *ShippingService {
 	return &ShippingService{config: config}
 }
 
-// ShippingFee quotes the order's selected delivery method.
+// ShippingFee calculates the shipping fee of the delivery method that the order selects, in cents.
+//
+//   - order is the order to quote.
+//   - It returns an error when the delivery method is unknown, or when the result exceeds the range of the return type.
 func (service *ShippingService) ShippingFee(order ShippingOrder) (uint64, error) {
 	switch order.Method {
 	case "flat":
@@ -175,11 +316,11 @@ func (service *ShippingService) ShippingFee(order ShippingOrder) (uint64, error)
 	case "weight":
 		rate := service.config.PerKilogramCents
 		if rate != 0 && order.Kilograms > ^uint64(0)/rate {
-			return 0, fmt.Errorf("shipping fee overflow")
+			return 0, errFeeOverflow
 		}
 		product := order.Kilograms * rate
 		if product > ^uint64(0)-service.config.WeightBaseCents {
-			return 0, fmt.Errorf("shipping fee overflow")
+			return 0, errFeeOverflow
 		}
 		return service.config.WeightBaseCents + product, nil
 	default:
@@ -188,50 +329,62 @@ func (service *ShippingService) ShippingFee(order ShippingOrder) (uint64, error)
 }
 ```
 
-- After: initialize private strategies from the same configuration. Keep selection inside the service; the caller supplies the existing order data.
+- The service owns the delivery methods, so selection stays in the `switch`. The algorithms use different rates, and more algorithms are expected. Separate functions can isolate the calculations. Here a strategy also keeps each algorithm's rates with its calculation. `flatRate` keeps the delivery fee, and `perKilogram` keeps the base fee and the price per kilogram. Once it selects an algorithm, the service calls it through the same `Fee(kilograms)` contract.
+
+- After: the same settings create the private strategies, and the selecting responsibility stays in the service; the caller provides the existing order data.
 
 ```go
-// shippingPolicy encapsulates one configured delivery-pricing algorithm.
+// shippingPolicy encapsulates one configured shipping fee algorithm.
 type shippingPolicy interface {
-	// Fee quotes a weight, returning an error if the charge cannot be represented.
+	// Fee calculates the shipping fee of one delivery, in cents.
+	//
+	//   - kilograms is the weight in whole kilograms; a policy that does not charge by weight does not use it.
+	//   - It returns an error when the result exceeds the range of the return type.
 	Fee(kilograms uint64) (uint64, error)
 }
 
-// flatRate applies one configured charge to the entire delivery.
+// flatRate applies the configured flat fee to a whole delivery.
 type flatRate struct {
-	cents uint64 // Charge per delivery, in cents.
+	cents uint64 // Fee per delivery, in cents.
 }
 
-// Fee returns the configured delivery charge.
+// Fee returns the configured delivery fee.
+//
+//   - It does not use the weight.
 func (policy flatRate) Fee(_ uint64) (uint64, error) {
 	return policy.cents, nil
 }
 
-// perKilogram combines an initial charge with weight-based pricing.
+// perKilogram prices a delivery as a base fee plus a fee by weight.
 type perKilogram struct {
-	baseCents uint64 // Initial charge per delivery, in cents.
-	cents     uint64 // Charge per whole kilogram, in cents.
+	baseCents uint64 // Base fee per delivery, in cents.
+	cents     uint64 // Fee per whole kilogram, in cents.
 }
 
-// Fee calculates the weight-based charge, rejecting an unrepresentable result.
+// Fee calculates the fee charged by weight.
+//
+//   - kilograms is the weight in whole kilograms.
+//   - It returns an error when the result exceeds the range of the return type.
 func (policy perKilogram) Fee(kilograms uint64) (uint64, error) {
 	if policy.cents != 0 && kilograms > ^uint64(0)/policy.cents {
-		return 0, fmt.Errorf("shipping fee overflow")
+		return 0, errFeeOverflow
 	}
 	product := kilograms * policy.cents
 	if product > ^uint64(0)-policy.baseCents {
-		return 0, fmt.Errorf("shipping fee overflow")
+		return 0, errFeeOverflow
 	}
 	return policy.baseCents + product, nil
 }
 
-// ShippingService calculates delivery charges using configured rates.
+// ShippingService calculates shipping fees from the configured rates.
 type ShippingService struct {
-	flat   flatRate    // Configured pricing for flat-rate deliveries.
-	weight perKilogram // Configured pricing for weight-based deliveries.
+	flat   flatRate    // Pricing strategy of the flat rate.
+	weight perKilogram // Pricing strategy of charging by weight.
 }
 
-// NewShippingService initializes delivery pricing from its rate configuration.
+// NewShippingService creates a shipping fee service from the rate settings.
+//
+//   - config is the rate settings of the delivery methods.
 func NewShippingService(config ShippingConfig) *ShippingService {
 	return &ShippingService{
 		flat:   flatRate{cents: config.FlatCents},
@@ -239,7 +392,10 @@ func NewShippingService(config ShippingConfig) *ShippingService {
 	}
 }
 
-// ShippingFee quotes the order's selected delivery method.
+// ShippingFee calculates the shipping fee of the delivery method that the order selects, in cents.
+//
+//   - order is the order to quote.
+//   - It returns an error when the delivery method is unknown, or when the result exceeds the range of the return type.
 func (service *ShippingService) ShippingFee(order ShippingOrder) (uint64, error) {
 	var policy shippingPolicy
 	switch order.Method {
@@ -254,10 +410,11 @@ func (service *ShippingService) ShippingFee(order ShippingOrder) (uint64, error)
 }
 ```
 
-- In both versions, construct with `service := NewShippingService(config)` and execute with `fee, err := service.ShippingFee(order)`. Public types, construction, input meanings, results, and errors stay the same. The strategies are implementation details.
+- Both create the service with `NewShippingService(config)` and run it with `service.ShippingFee(order)`. The public types, the way of creation, the input meanings, the results, and the errors all stay the same. The strategies are an implementation detail.
+- A zero-value `ShippingService` returns `0, nil` for either known delivery method before and after the change.
 
-- With `FlatCents: 50`, `PerKilogramCents: 20`, and `WeightBaseCents: 0`, both versions return `50, nil` for a three-kilogram `"flat"` order and `60, nil` for a three-kilogram `"weight"` order. At zero kilograms, the results are respectively `50, nil` and `0, nil`. If the weight-based initial charge is `10`, those weight-based results become `70, nil` and `10, nil`. With all rate settings zero, valid methods return zero charges.
+- With `FlatCents` `50`, `PerKilogramCents` `20`, and `WeightBaseCents` `0`, a `"flat"` order of three kilograms returns `50, nil` before and after, and a `"weight"` order of three kilograms returns `60, nil`. At zero kilograms they return `50, nil` and `0, nil`. When the base fee of charging by weight is `10`, the results of charging by weight above become `70, nil` and `10, nil`.
 
-- Both versions return `0` with `unknown delivery method: drone` for method `"drone"`. Both multiplication and addition overflow return `0` with `shipping fee overflow`: for example, a rate of `20` with `^uint64(0)` kilograms, or an initial charge of `^uint64(0)` plus one kilogram at a rate of `1`. In the after version, these checks live only in `perKilogram.Fee`.
+- With the delivery method `"drone"`, both return `0` and an error with the message `unknown delivery method: drone`. An overflow in the multiplication or in the addition returns `0` and an error with the message `shipping fee overflow`, e.g. a price of `20` per kilogram with `^uint64(0)` kilograms, or a base fee of `^uint64(0)` with one kilogram at a price of `1` per kilogram. After the change, these calculations live only in `perKilogram.Fee`.
 
-- New algorithms may require changes to internal selection and assembly; existing operation callers need not choose strategy objects. If initialization needs new required settings, inspect their construction and loading sources and apply the compatibility handling in [Change Rules](../SKILL.md#change-rules).
+- Adding an algorithm changes only the selection and the assembly inside the service; existing callers do not choose a strategy object.

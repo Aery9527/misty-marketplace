@@ -3,7 +3,7 @@ import path from "node:path";
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { collectReviewContext, describeReviewScope, resolveReviewTarget } from "../scripts/lib/git.mjs";
+import { collectReviewContext, describeReviewScope, removeReviewPatchFiles, resolveReviewTarget, withReviewPatchFiles } from "../scripts/lib/git.mjs";
 import { initGitRepo, makeTempDir, run } from "./helpers.mjs";
 
 test("resolveReviewTarget prefers working tree when repo is dirty", () => {
@@ -111,7 +111,7 @@ test("collectReviewContext keeps inline diffs for tiny adversarial reviews", () 
 
   assert.equal(context.inputMode, "inline-diff");
   assert.equal(context.fileCount, 1);
-  assert.match(context.collectionGuidance, /primary evidence/i);
+  assert.deepEqual(context.patchSources, []);
   assert.match(context.content, /INLINE_MARKER/);
 });
 
@@ -226,7 +226,7 @@ test("describeReviewScope marks an auto-selected working tree review as automati
   assert.match(scope, /Committed history is not reviewed/);
 });
 
-test("collectReviewContext falls back to lightweight context for larger adversarial reviews", () => {
+test("大型工作區審查分別保留已暫存與未暫存的差異", async () => {
   const cwd = makeTempDir();
   initGitRepo(cwd);
   for (const name of ["a.js", "b.js", "c.js"]) {
@@ -234,44 +234,80 @@ test("collectReviewContext falls back to lightweight context for larger adversar
   }
   run("git", ["add", "a.js", "b.js", "c.js"], { cwd });
   run("git", ["commit", "-m", "init"], { cwd });
-  fs.writeFileSync(path.join(cwd, "a.js"), 'export const value = "SELF_COLLECT_MARKER_A";\n');
+  fs.writeFileSync(path.join(cwd, "a.js"), 'export const value = "STAGED_MARKER";\n');
+  run("git", ["add", "a.js"], { cwd });
+  fs.writeFileSync(path.join(cwd, "a.js"), 'export const value = "a.js-v1";\n');
   fs.writeFileSync(path.join(cwd, "b.js"), 'export const value = "SELF_COLLECT_MARKER_B";\n');
   fs.writeFileSync(path.join(cwd, "c.js"), 'export const value = "SELF_COLLECT_MARKER_C";\n');
 
   const target = resolveReviewTarget(cwd, {});
   const context = collectReviewContext(cwd, target);
 
-  assert.equal(context.inputMode, "self-collect");
+  assert.equal(context.inputMode, "patch-files");
   assert.equal(context.fileCount, 3);
-  // The session has no shell, so the guidance must not send the reviewer after git.
-  assert.match(context.collectionGuidance, /a summary, not a diff/i);
-  assert.doesNotMatch(context.collectionGuidance, /git command/i);
-  assert.match(context.collectionGuidance, /current state of the changed files/i);
-  // Untracked content is inlined even in this mode, so the guidance must not deny it —
-  // but only when it was eligible, so the guidance must not promise it unconditionally
-  // either, or it would contradict the skipped entries the same context reports.
-  assert.match(context.collectionGuidance, /untracked file is included with its contents/i);
-  assert.match(context.collectionGuidance, /unless the section marks it skipped/i);
   assert.doesNotMatch(context.content, /SELF_COLLECT_MARKER_[ABC]/);
   assert.match(context.content, /## Changed Files/);
+  const patchPaths = await withReviewPatchFiles(context, path.join(makeTempDir(), "patches"), (patches) => {
+    const paths = patches.map((patch) => patch.path);
+    assert.deepEqual(paths.map((file) => path.basename(file)), ["staged.patch", "unstaged.patch"]);
+    assert.match(fs.readFileSync(paths[0], "utf8"), /^\+.*STAGED_MARKER/m);
+    const unstaged = fs.readFileSync(paths[1], "utf8");
+    assert.match(unstaged, /^-.*STAGED_MARKER/m);
+    assert.match(unstaged, /^\+.*a\.js-v1/m);
+    return paths;
+  });
+  assert.equal(fs.existsSync(path.dirname(patchPaths[0])), false);
 });
 
-test("collectReviewContext falls back to lightweight context for oversized single-file diffs", () => {
+test("超過 Git 輸出緩衝區的分支差異完整寫入檔案，審查失敗後清理", async () => {
   const cwd = makeTempDir();
   initGitRepo(cwd);
   fs.writeFileSync(path.join(cwd, "app.js"), "export const value = 'v1';\n");
   run("git", ["add", "app.js"], { cwd });
   run("git", ["commit", "-m", "init"], { cwd });
-  fs.writeFileSync(path.join(cwd, "app.js"), `export const value = '${"x".repeat(512)}';\n`);
+  run("git", ["checkout", "-b", "feature"], { cwd });
+  fs.writeFileSync(path.join(cwd, "app.js"), `${"x".repeat(1100 * 1024)}\nEND_MARKER\n`);
+  const commit = run("git", ["commit", "-am", "large diff"], { cwd, shell: false });
+  assert.equal(commit.status, 0, commit.stderr);
 
-  const target = resolveReviewTarget(cwd, {});
-  const context = collectReviewContext(cwd, target, { maxInlineDiffBytes: 128 });
+  const target = resolveReviewTarget(cwd, { base: "main" });
+  const context = collectReviewContext(cwd, target);
 
   assert.equal(context.fileCount, 1);
-  assert.equal(context.inputMode, "self-collect");
-  assert.ok(context.diffBytes > 128);
+  assert.equal(context.inputMode, "patch-files");
+  assert.match(context.inlineRefusalReason, /262144 bytes/);
   assert.doesNotMatch(context.content, /xxx/);
   assert.match(context.content, /## Changed Files/);
+  let patchPath;
+  await assert.rejects(withReviewPatchFiles(context, path.join(makeTempDir(), "patches"), async ([patch]) => {
+    patchPath = patch.path;
+    assert.equal(path.basename(patchPath), "branch.patch");
+    assert.ok(patch.bytes > 1024 * 1024);
+    const contents = fs.readFileSync(patchPath, "utf8");
+    assert.match(contents, /^-export const/m);
+    assert.ok(contents.endsWith("+END_MARKER\n"));
+    throw new Error("審查失敗");
+  }), /審查失敗/);
+  assert.equal(fs.existsSync(path.dirname(patchPath)), false);
+});
+
+test("清理暫存檔失敗時保留已完成的審查結果", async (t) => {
+  const warn = t.mock.method(process, "emitWarning", () => {});
+  const directory = path.join(makeTempDir(), "patches");
+  const unexpected = path.join(directory, "other.txt");
+  const context = { inputMode: "patch-files", patchSources: [] };
+  const result = await withReviewPatchFiles(context, directory, () => {
+    fs.writeFileSync(unexpected, "keep");
+    return "completed";
+  });
+
+  assert.equal(result, "completed");
+  assert.equal(warn.mock.callCount(), 1);
+  assert.match(warn.mock.calls[0].arguments[0], /Could not clean up review patches/);
+  assert.equal(fs.readFileSync(unexpected, "utf8"), "keep");
+  fs.unlinkSync(unexpected);
+  removeReviewPatchFiles(directory);
+  assert.equal(fs.existsSync(directory), false);
 });
 
 test("collectReviewContext keeps untracked file content in lightweight working tree context", () => {
@@ -289,7 +325,7 @@ test("collectReviewContext keeps untracked file content in lightweight working t
   const target = resolveReviewTarget(cwd, {});
   const context = collectReviewContext(cwd, target);
 
-  assert.equal(context.inputMode, "self-collect");
+  assert.equal(context.inputMode, "patch-files");
   assert.equal(context.fileCount, 3);
   assert.doesNotMatch(context.content, /TRACKED_MARKER_[AB]/);
   assert.match(context.content, /## Untracked Files/);
