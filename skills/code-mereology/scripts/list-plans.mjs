@@ -11,67 +11,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { findFiles } from './find-files.mjs';
+
 // File name contract of a deferred plan.
 const PLAN_NAME = /^sd-.+-plan\.md$/;
-
-// Directories that hold version control data or other checkouts, not the repository content.
-const SKIPPED_DIRECTORIES = new Set(['.git', '.hg', '.svn', '.worktree']);
-
-/**
- * Returns a path with forward slashes.
- *
- * @param {string} native Path with the separators of the platform.
- */
-function toPosix(native) {
-  return path.sep === '\\' ? native.replaceAll('\\', '/') : native;
-}
-
-/**
- * Tells whether a path is an existing directory; a link is followed.
- *
- * @param {string} target Path to check.
- */
-function isDirectory(target) {
-  return fs.statSync(target, { throwIfNoEntry: false })?.isDirectory() ?? false;
-}
-
-/**
- * Collects the plans in one directory and below it.
- *
- * - A directory that cannot be read makes the search fail, so that it is not reported as empty.
- * - A linked directory is not searched.
- *
- * @param {string} directory Directory to search.
- * @returns {string[]} Paths of the plans, in the order found.
- */
-function walk(directory) {
-  const entries = fs.readdirSync(directory, { withFileTypes: true });
-  const child = (name) => path.join(directory, name);
-  const plans = entries
-    .filter((entry) => PLAN_NAME.test(entry.name) && !isDirectory(child(entry.name)))
-    .map((entry) => child(entry.name));
-  const directories = entries
-    .filter((entry) => entry.isDirectory() && !SKIPPED_DIRECTORIES.has(entry.name))
-    .map((entry) => entry.name)
-    .sort();
-  return plans.concat(directories.flatMap((name) => walk(child(name))));
-}
-
-/**
- * Orders two paths without regard to case.
- *
- * @param {string} left Path with forward slashes.
- * @param {string} right Path with forward slashes.
- * @returns {number} Negative, zero, or positive, as `Array.prototype.sort` expects.
- */
-function compareWithoutCase(left, right) {
-  const leftKey = left.toLowerCase();
-  const rightKey = right.toLowerCase();
-  if (leftKey === rightKey) {
-    return 0;
-  }
-  return leftKey < rightKey ? -1 : 1;
-}
 
 /**
  * Finds the deferred plans below one file or directory, in a stable order.
@@ -84,15 +27,7 @@ function compareWithoutCase(left, right) {
  * @throws {Error} When the path does not exist, or a directory below it cannot be read.
  */
 export function find(root) {
-  const stats = fs.statSync(root, { throwIfNoEntry: false });
-  if (stats === undefined) {
-    throw new Error('path does not exist');
-  }
-  const start = path.normalize(root);
-  if (stats.isFile()) {
-    return PLAN_NAME.test(path.basename(start)) ? [toPosix(start)] : [];
-  }
-  return walk(start).map(toPosix).sort(compareWithoutCase);
+  return findFiles(root, PLAN_NAME);
 }
 
 /**
