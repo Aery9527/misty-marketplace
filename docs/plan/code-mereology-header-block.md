@@ -53,6 +53,10 @@
 - `parts` 與 `depends` 的每個項目獨立一行，格式為「連結: 說明」，說明寫明為什麼連到它。
     - 原因：腳本把說明連同關係一起輸出，agent 不必開啟來源文件，就能判斷要不要讀取對方的文件。
     - 區塊的 `parts` 取代現行內文中的下一層節點清單，同一份清單只寫在一處。
+- 指向 `bd-*.md` 或 `sd-*.md` 的 Markdown link 只能出現在區塊中；內文提到這些文件時不寫連結，改寫成斜體的 label，即 `*label*`。
+    - 原因：所有關係集中在區塊，腳本取得的資料就是全部；內文不重複連結路徑，節省字數。
+    - 斜體讓讀者分辨出這段文字指的是區塊中的那個 label。
+    - 內文的斜體只能用來寫 label，粗體留給一般的強調；腳本因此能驗證每個斜體文字都是區塊中的 label。
 - `bd-*.md` 的 `depends` 可以有值，連到與它有關聯的其他 `bd-*.md`。
     - 原因：主題之間的關聯，例如一個業務系統需要另一個業務系統交付的結果，現行規則沒有地方可以寫。
     - `depends` 的兩端必須同層；由腳本驗證。
@@ -95,6 +99,7 @@
     - 每個項目是鍵下方一行縮排的清單項目，格式為 `- <連結>: <說明>`；鍵的那一行冒號後不寫內容。
     - 目標尚未存在時，在連結後標 `(planned)`，格式為 `- <連結> (planned): <說明>`。
     - 連結是 inline link，形式與現行 planned link 的規定相同：單行、無 title、label 無方括號、目的地無空白或括號。一個項目只有一個連結。
+    - 同一份文件的區塊中，每個連結的 label 不得重複；內文的 `*label*` 才能對回唯一的一個項目。
     - 說明必填，只寫一行，寫明為什麼連到它：`parts` 寫該文件在這個組成中扮演的角色，`depends` 寫需要對方提供的能力。
     - 只列 `bd-*.md` 與 `sd-*.md`；不列程式碼、`-plan`、`-perf`，也不列指回上層的導航連結。
 - `tags` 的項目：
@@ -160,7 +165,17 @@
 
 ## 模型上的改變
 
-- 結構邊的定義改為「區塊中 `parts` 與 `depends` 的連結」。內文中其他指向 `.md` 的連結一律不是結構邊。
+- 結構邊的定義改為「區塊中 `parts` 與 `depends` 的連結」。
+- 指向 `bd-*.md` 或 `sd-*.md` 的 Markdown link 只能出現在區塊中，內文嚴禁出現。
+    - 內文需要提到的每一份 `bd-*.md` 或 `sd-*.md`，都必須已列在這份文件的 `parts` 或 `depends`。
+    - 內文提到它時不寫連結，用區塊中該連結的 label 稱呼它，並以斜體包起來，即 `*label*`，字面與區塊的 label 完全相同。
+        - 例：區塊有 `[資料表結構](../schema/sd-table-schema.md): …` 時，內文寫「寫入前依 `*資料表結構*` 驗證欄位」。
+    - 內文的斜體只能用來寫 label；一般的強調用粗體 `**…**`。
+        - 斜體只能用 `*` 寫，嚴禁用 `_`，也嚴禁與粗體疊用成 `***…***`。
+        - 腳本檢查區塊之後、程式碼區塊與 inline code 之外的每一個 `*…*`：它的文字必須與區塊中某個連結的 label 完全相同。
+    - 原因：同一條關係只寫在區塊一處；內文省下重複的連結路徑。
+    - 現行指回上層的導航連結因此不再存在；要找上層時，用腳本的 `-f p`。
+    - 不受限制的連結：指向程式碼、`-plan`、`-perf`、同一份文件內的標題，以及外部網址。
 - 區塊的 `parts` 取代現行內文中的清單，內文不再重複列出：
     - `bd-*.md` 現行的「下一層節點清單，每個節點附一句話說明它在這裡扮演的角色」。
     - overview 現行的「子層文件清單，每份附一句話」。
@@ -192,7 +207,7 @@
 - 走訪只沿目標已存在的邊；帶 `(planned)` 的邊不算連到。
 - 腳本以標題與第一個 `## ` 標題之間、開頭為 `` > `code-mereology-partial`: `` 的行認出 partial leaf。
 - `-plan` 與 `-perf` 檔刻意不在圖裡，不列入檢查。
-- 腳本不檢查 leaf 到程式碼這一段：區塊只列 `.md`，程式碼連結在內文，腳本不解析內文。
+- 腳本不檢查 leaf 到程式碼這一段：區塊只列 `.md`，程式碼連結在內文，腳本不解析內文中指向程式碼的連結。
 
 範例，以[輸出範例](#輸出範例)的檔案為基礎：
 
@@ -335,6 +350,9 @@ service/table/sd-table.md	tag	persistence
 | 連結沒有 `(planned)`，但目標不存在 | 錯誤 |
 | 連結有 `(planned)`，但目標已存在 | 錯誤 |
 | 目標不是 `bd-*.md` 或 `sd-*.md`，或是 `-plan`、`-perf` 檔 | 錯誤 |
+| 同一份文件的區塊中有兩個連結的 label 相同 | 錯誤 |
+| 內文的 `*…*` 不是區塊中任何連結的 label，或內文有 `***…***` | 錯誤 |
+| 區塊之外的內文有指向 `bd-*.md` 或 `sd-*.md` 的 inline link；`-plan`、`-perf` 檔不算 | 錯誤 |
 | `depends` 的兩端不同層：`bd-*.md` 連到 `sd-*.md`，或 `sd-*.md` 連到 `bd-*.md` | 錯誤 |
 | tag 不在 `docs/code-mereology.json` 的 `tags` 中；該檔不存在或沒有 `tags` 鍵時，視為沒有任何 tag | 錯誤 |
 | 文件宣告了它已繼承的 tag | 錯誤；訊息指出 tag 名稱與宣告它的上層文件 |
@@ -391,7 +409,8 @@ service/table/sd-table.md	tag	persistence
 
 ## 不在範圍
 
-- 腳本不比對區塊與內文連結是否一致。內文連結無法以程式分辨型別，只能做單向檢查。
+- 腳本不檢查內文是否以斜體以外的寫法，例如不加任何標記的文字，提到沒列在區塊的文件。這種提及無法以程式辨識，只能由撰寫文件的 agent 遵守。
+    - 腳本能檢查的是連結與斜體：內文出現指向 `bd-*.md` 或 `sd-*.md` 的 inline link，或斜體文字不是區塊中的 label，即為錯誤；見[錯誤處理](#錯誤處理)。
 - 腳本不檢查角色規則，例如 overview 不得有 `depends`。
 - 不改動既有的 `bd-*.md` 與 `sd-*.md`；它們在執行腳本時會被回報為缺少區塊，需另行補上。已知的既有文件：
     - 本 repository 的 `skills/claude/codex-plugin/` 下有 `docs/bd-bridge-runtime.md`、`sd-broker-session-lifecycle.md`、`sd-session-transfer.md`。修改前必須先讀 `docs/claude/UPSTREAM-PARITY.md`。
@@ -431,6 +450,7 @@ service/table/sd-table.md	tag	persistence
     - 「文件模型」新增區塊的定義與格式，並把結構邊改為由區塊宣告；`bd-*.md` 的「下一層實際節點必須另用 Markdown 連結清單列出」改為由 `parts` 列出；依賴邊的定義加上 `bd-*.md` 之間的依賴。
     - 「文件模型」新增 tag 繼承的規則、tag 的命名規則與設定檔 `docs/code-mereology.json`。
     - 「文件模型」新增[文件鏈的完整性](#文件鏈的完整性)的兩條歸屬規則：一般的 `sd-*.md` 必須能從某份 `bd-*.md` 沿 `parts` 走到；partial leaf 必須被至少一份文件連到。
+    - 「文件模型」新增：指向 `bd-*.md` 或 `sd-*.md` 的 Markdown link 只能出現在區塊中，內文改寫 `*label*`，且斜體只能用來寫 label；並刪除「指回上層的導航連結不是結構邊」那一段，因為這種連結不再存在。
     - 新增 `list-relations.mjs` 的用法與選項。
     - 「階段之外的程式碼修改」補上[使用時機](#agent-的使用時機)表中對應的查詢。
 - `skills/code-mereology/references/phase1-design.md`：
@@ -438,6 +458,7 @@ service/table/sd-table.md	tag	persistence
     - 組裝文件與 overview 的內容順序移除最後的節點清單；「Markdown 連結清單」的規則改為描述 `parts`，包含「新增沿用相同規則的既有角色實例時只更新 `parts`」。
     - leaf 的依賴規則改為：依賴寫在 `depends`，並在關係圖中畫出。
     - 寫明 `parts` 與 `depends` 的說明要寫什麼。
+    - 三種撰寫規則都補上：內文提到的 `bd-*.md` 或 `sd-*.md` 必須已列在區塊，並以 `*label*` 稱呼，label 的字面與區塊相同；斜體不作其他用途。overview 的「必須連結每一份子層設計文件」改為列在 `parts`。
     - 「落點決策」第 7 點的「依賴邊只存在於 leaf 之間」改為同層之間，並寫明 `bd-*.md` 的 `depends` 表示什麼。
     - 「partial leaf」補上標記與區塊的先後，以及 `depends` 留空。
     - 「遞迴與 gate」補上：
@@ -449,6 +470,7 @@ service/table/sd-table.md	tag	persistence
     - 補上[使用時機](#agent-的使用時機)表中 Phase 1 的兩個查詢。
     - 「產出物」補上：對 repository 執行 `list-relations.mjs` 沒有錯誤。
 - `skills/code-mereology/references/phase3-tdd.md`：冷載入程序第 3 點與執行流程第 7 點，改為用[使用時機](#agent-的使用時機)表中 Phase 3 的兩個查詢。
+    - 冷載入程序第 3 點刪除「導航連結、交叉引用不算」的判讀，因為結構邊只來自區塊。
     - 執行流程第 7 點補上：依賴者是 `bd-*.md` 時，檢查它描述的關聯是否仍然成立；它沒有自己的測試可以執行。
 - `skills/code-mereology/CODE-MEREOLOGY.md`：
     - 檔名規則表加上 `docs/code-mereology.json`。
