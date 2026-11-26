@@ -85,8 +85,8 @@ flowchart TD
 3. 把宣告的 skill 目錄複製到各自的 [`codex-plugins/<plugin>/skills`](../codex-plugins/)。
 4. 用 [`.claude-plugin/marketplace.json`](../.claude-plugin/marketplace.json) 的 `metadata.version` 回寫每個
    [`codex-plugins/<plugin>/.codex-plugin/plugin.json`](../codex-plugins/) 的 `version`。
-5. 從同步後的 package tree 中刪除所有 [`*_ch.md`](../skills/)，讓 Codex package 只保
-   留英文主檔。
+5. 從同步後的 package tree 中刪除所有 [`*_ch.md`](../skills/)，讓 Codex package 不含
+   `_ch` 對應檔。
 6. 重寫 [`.agents/plugins/marketplace.json`](../.agents/plugins/marketplace.json)，使其指向
    [`./codex-plugins/<plugin>`](../codex-plugins/)。
 7. 執行 [`verify-codex-plugins.mjs`](verify-codex-plugins.mjs)，確認 [`codex-plugins/*/skills`](../codex-plugins/) 與 source

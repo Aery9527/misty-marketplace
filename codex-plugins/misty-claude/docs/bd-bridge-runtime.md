@@ -1,26 +1,25 @@
 # Claude Code Bridge Runtime
 
-## Quick Navigation
+## 快速導覽
 
-- [What This Assembly Delivers](#what-this-assembly-delivers)
-- [Relationship and Data Flow](#relationship-and-data-flow)
-- [Runtime Modules](#runtime-modules)
-
----
-
-## What This Assembly Delivers
-
-The bridge runtime lets a Codex session delegate work to a long-lived Claude
-Code CLI session, observe and stop delegated work safely, require an optional
-stop-time review, and hand the resulting context to a resumable Claude session.
-It reports the host-specific limit each mechanism actually carries instead of
-claiming native Claude Code behaviour the CLI cannot provide.
-
-[Back to top](#quick-navigation)
+- [此組裝提供的成果](#此組裝提供的成果)
+- [關係與資料流](#關係與資料流)
+- [Runtime 模組](#runtime-模組)
 
 ---
 
-## Relationship and Data Flow
+## 此組裝提供的成果
+
+Bridge runtime 讓 Codex session 能把工作委派給長期運行的 Claude Code CLI
+session、安全地觀察與停止委派工作、選擇性要求停止前審查，並把產生的脈絡交給可續接的
+Claude session。它如實回報各機制實際帶有的 host 限制，不會宣稱 CLI 其實無法提供的
+Claude Code 原生行為。
+
+[返回頂端](#快速導覽)
+
+---
+
+## 關係與資料流
 
 ```mermaid
 flowchart LR
@@ -33,22 +32,20 @@ flowchart LR
     Transfer --> ClaudeCli
 ```
 
-The companion remains the single boundary for user-invoked bridge commands.
-Codex hooks are separate host entry points: the stop hook invokes its restricted
-Claude turn directly, while the session hook coordinates teardown. The broker
-owns live-session coordination, and transfer creates a separate bridge-owned
-Claude session that can be resumed. Foreground commands reserve stdout for the
-final result and expose live Claude protocol progress on stderr; background
-workers write the same progress only to their job log and phase.
+Companion 維持所有使用者呼叫 bridge commands 的單一邊界。Codex hooks 是獨立的 host
+entry points：stop hook 直接呼叫自己的受限 Claude turn，session hook 則協調 teardown。
+Broker 負責 live session 協調，而 transfer 建立另一個可續接的 bridge-owned Claude session。
+Foreground command 保留 stdout 給最終結果，並從 stderr 顯示即時 Claude protocol
+progress；background worker 則只把相同進度寫入 job log 與 phase。
 
-[Back to top](#quick-navigation)
+[返回頂端](#快速導覽)
 
 ---
 
-## Runtime Modules
+## Runtime 模組
 
-- [Broker and session lifecycle](../sd-broker-session-lifecycle.md) — coordinates live bridge sessions, graceful interruption, and session cleanup without making job records secondary to broker state.
-- [Stop review hook](../scripts/stop-review-gate-hook.mjs) — applies the saved review-gate preference to Codex stop events, stays silent when disabled, and fails safely when an enabled review cannot establish an allow decision.
-- [Session transfer](../sd-session-transfer.md) — converts Codex context into a bridge-owned Claude session and returns a resumable command without writing Claude's private project-session format directly.
+- [Broker 與 session lifecycle](../sd-broker-session-lifecycle.md) — 協調 live bridge session、graceful interruption 與 session cleanup，且不讓 broker state 取代 job record 的權威地位。
+- [Stop review hook](../scripts/stop-review-gate-hook.mjs) — 將已儲存的 review-gate 偏好套用到 Codex stop event；未啟用時保持靜默，啟用後無法得出 allow 決定時採取安全失敗。
+- [Session transfer](../sd-session-transfer.md) — 將 Codex context 轉換成 bridge-owned Claude session，並回傳可續接命令，而不直接寫入 Claude 的私有 project-session 格式。
 
-[Back to top](#quick-navigation)
+[返回頂端](#快速導覽)

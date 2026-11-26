@@ -8,7 +8,7 @@
 - [skills](skills) — skill 的 source of truth；skill 目錄內的所有內容都會隨該 skill 一起發布
 - [.claude-plugin/marketplace.json](.claude-plugin/marketplace.json) — 所有 host 都能安裝的 bundle 目錄；其 `metadata.version` 是整個 repo 的版本
 - [.agents/plugins/codex-only-bundles.json](.agents/plugins/codex-only-bundles.json) — 只有 Codex 能安裝的 bundle 目錄
-- [.agents/plugins/marketplace.json](.agents/plugins/marketplace.json) 與 [codex-plugins](codex-plugins) — 同步腳本產生的 Codex 封裝；只含英文主檔
+- [.agents/plugins/marketplace.json](.agents/plugins/marketplace.json) 與 [codex-plugins](codex-plugins) — 同步腳本產生的 Codex 封裝；不含任何 `*_ch.md` 檔
 - [scripts](scripts) — 同步與驗證腳本
 - [docs](docs) — 只給維護者看的文件，每個 skill 一個 `docs/<skill-name>/` 目錄
 - [release-note](release-note) — 每個版本一份 release note
@@ -54,6 +54,7 @@
 - `LORE`、`AGENTS`、`CLAUDE`、`CODEX` 必須各有無後綴的英文檔與加 `_ch` 後綴的等價繁體中文檔；兩者必須在同一次變更中更新。其他 agent 文件可以加 `_ch` 對應檔，加了之後兩者必須維持等價。`_ch` 檔在對應目標存在時連到 `_ch` 目標。
 - agent 文件只放穩定規則；嚴禁寫入任務進度、暫時狀態或進行中的遷移。
 - [README.md](README.md) 是繁體中文的人類讀者文件。
+- `bd-*.md` 與 `sd-*.md` 設計文件是繁體中文的人類讀者文件，只有一種語言版本；嚴禁為它加 `_ch` 對應檔。
 - 專案 skill 放在 `.agents/skills/<skill-name>/`；嚴禁直接在 `.claude/skills` 建立 skill 檔案，它是指向 `.agents/skills` 的本機 link。
 
 ## 閱讀指引

@@ -1,33 +1,32 @@
-# Broker and Session Lifecycle
+# Broker 與 Session Lifecycle
 
-## Quick Navigation
+## 快速導覽
 
-- [Responsibility and Boundary](#responsibility-and-boundary)
-- [Runtime Flow](#runtime-flow)
-- [Interfaces and Data Views](#interfaces-and-data-views)
-- [Caveats](#caveats)
-
----
-
-## Responsibility and Boundary
-
-This module gives another bridge process a bounded control channel to the
-process that owns an active Claude CLI session. It owns endpoint creation,
-control-message validation, graceful interrupt and shutdown requests, endpoint
-liveness, and cleanup when either the job or its Codex session ends.
-
-Each active job MUST own its control endpoint. The broker MUST NOT become a
-workspace-wide Claude session: model, tool, schema, permission, and resume
-options are fixed when the Claude CLI starts, so sharing one process across
-commands would mix incompatible security and output contracts. The broker also
-MUST NOT become a second job store; the existing job record remains the source
-of truth for requests, progress, and outcomes.
-
-[Back to top](#quick-navigation)
+- [責任與邊界](#責任與邊界)
+- [Runtime 流程](#runtime-流程)
+- [介面與資料視圖](#介面與資料視圖)
+- [注意事項](#注意事項)
 
 ---
 
-## Runtime Flow
+## 責任與邊界
+
+此模組讓另一個 bridge process 能透過受限的 control channel，聯絡擁有 active
+Claude CLI session 的 process。它負責 endpoint 建立、control message 驗證、
+graceful interrupt 與 shutdown request、endpoint liveness，以及 job 或其 Codex
+session 結束時的 cleanup。
+
+每個 active job 必須擁有自己的 control endpoint。Broker 嚴禁成為 workspace-wide
+Claude session：model、tool、schema、permission 與 resume option 都在 Claude CLI
+啟動時固定；跨 command 共用一個 process 會混合不相容的安全與輸出契約。Broker
+也嚴禁成為第二套 job store；既有 job record 仍是 request、progress 與 outcome
+的唯一真相來源。
+
+[返回頂端](#快速導覽)
+
+---
+
+## Runtime 流程
 
 ```mermaid
 sequenceDiagram
@@ -49,40 +48,39 @@ sequenceDiagram
     Worker->>Store: Record the final job outcome
 ```
 
-The endpoint is ready before the job advertises brokered control. Cancellation
-first targets the verified control channel. If the endpoint is absent,
-unreachable, or cannot establish an interrupt, the existing verified process
-termination remains the fallback and its narrower guarantee is reported.
+Endpoint 必須 ready 後，job 才能宣告具備 brokered control。Cancellation 會先鎖定
+已驗證的 control channel；若 endpoint 不存在、無法連線，或無法確認 interrupt，
+則沿用既有、已驗證的 process termination fallback，並回報其較窄的保證。
 
-[Back to top](#quick-navigation)
-
----
-
-## Interfaces and Data Views
-
-- [Broker server](scripts/claude-broker.mjs) — accepts bounded control requests for one active session owner and reports whether Claude acknowledged them.
-- [Endpoint codec](scripts/lib/broker-endpoint.mjs) — creates platform-specific local endpoints and rejects unsupported or malformed endpoint values.
-- [Broker lifecycle](scripts/lib/broker-lifecycle.mjs) — publishes, probes, shuts down, and removes per-job control endpoints.
-- [Session lifecycle hook](scripts/session-lifecycle-hook.mjs) — consumes Codex session events and cleans only the jobs attributable to the ending session.
-- [Claude CLI session](scripts/lib/claude-cli.mjs) — owns the stdin control channel and defines interrupt acknowledgement.
-- [Companion command boundary](scripts/claude-companion.mjs) — starts tracked work, resolves cancellation, and reports the actual fallback used.
-- [Job records](scripts/lib/state.mjs) — remain authoritative for the active owner, control endpoint, and terminal outcome.
-
-[Back to top](#quick-navigation)
+[返回頂端](#快速導覽)
 
 ---
 
-## Caveats
+## 介面與資料視圖
 
-- Idempotency — shutdown and cleanup MUST tolerate an endpoint, process, or artifact that is already gone. Repeated cleanup MUST NOT change another job.
-- Concurrency — one endpoint represents one active session owner and accepts control requests only; it MUST NOT multiplex independent Claude turns or accept a new owner while the recorded one is active.
-- Ordering — endpoint readiness MUST precede publishing it in the job record. Publishing and clearing an endpoint MUST use a guarded write that refuses the update when it observes a terminal job.
-- Failure behavior — failure to create a control endpoint MAY fall back to the direct runtime, but MUST remain observable and MUST NOT be reported as graceful interruption support. A failed or unanswered interrupt MAY fall back to verified process termination.
-- Session scope — a session-end event MUST discover jobs from both the listing and authoritative job files, then clean only jobs carrying that Codex session identifier. When Codex provides no durable identifier, the hook MUST NOT guess one or remove every workspace job.
-- Cleanup safety — an active job's files MUST remain unless its worker exit is observed after acknowledged broker shutdown or verified fallback termination. A stale record costs manual cleanup; terminating an unrelated process or deleting the only evidence is not an acceptable fallback.
-- Host delivery — direct hook invocation verifies parsing and cleanup. An interactive Codex TUI probe verified `SessionStart` and `SessionEnd` delivery with the workspace and installed plugin environment. The hook process does not receive `CODEX_THREAD_ID`; its payload identifier matches the transcript's `session_meta.id`, which command-side `CODEX_THREAD_ID` identifies.
-- Limits — an acknowledged interrupt proves that Claude accepted the control request, not that every child process has exited or that the job has already reached a terminal state.
-- Turn lifetime — the runtime imposes no default total-duration deadline. The caller owns idle and absolute monitoring and may pass an explicit turn timeout when the task needs one; process liveness alone is not model progress.
-- Guard limit — the endpoint guard narrows but does not close the interval between its final read and atomic rename. A terminal write landing in that interval can still be overwritten; closing it requires a real cross-process lock or compare-and-swap primitive that this runtime does not provide.
+- [Broker server](scripts/claude-broker.mjs) — 接收單一 active session owner 的受限 control request，並回報 Claude 是否 acknowledge。
+- [Endpoint codec](scripts/lib/broker-endpoint.mjs) — 建立各平台的 local endpoint，並拒絕不支援或格式錯誤的 endpoint value。
+- [Broker lifecycle](scripts/lib/broker-lifecycle.mjs) — publish、probe、shutdown 並移除每個 job 的 control endpoint。
+- [Session lifecycle hook](scripts/session-lifecycle-hook.mjs) — 接收 Codex session event，只清理可歸屬於該結束 session 的 job。
+- [Claude CLI session](scripts/lib/claude-cli.mjs) — 擁有 stdin control channel，並定義 interrupt acknowledgement。
+- [Companion command boundary](scripts/claude-companion.mjs) — 啟動 tracked work、解析 cancellation，並回報實際採用的 fallback。
+- [Job records](scripts/lib/state.mjs) — 對 active owner、control endpoint 與 terminal outcome 保持權威。
 
-[Back to top](#quick-navigation)
+[返回頂端](#快速導覽)
+
+---
+
+## 注意事項
+
+- Idempotency — shutdown 與 cleanup 必須容許 endpoint、process 或 artifact 已不存在。重複 cleanup 嚴禁改動其他 job。
+- Concurrency — 一個 endpoint 代表一個 active session owner，且只接受 control request；它嚴禁 multiplex 獨立的 Claude turn，也嚴禁在已記錄的 owner 仍 active 時接受新 owner。
+- Ordering — endpoint readiness 必須早於將它 publish 到 job record。Publish 與清除 endpoint 都必須使用 guarded write，並在觀察到 terminal job 時拒絕更新。
+- Failure behavior — control endpoint 建立失敗時可以 fallback 到 direct runtime，但必須可觀察，且嚴禁回報成支援 graceful interruption。失敗或未回覆的 interrupt 可以 fallback 到 verified process termination。
+- Session scope — session-end event 必須從 listing 與 authoritative job files 共同找出 jobs，再只清理帶有該 Codex session identifier 的項目。Codex 未提供 durable identifier 時，hook 嚴禁猜測 identifier 或移除 workspace 的所有 job。
+- Cleanup safety — acknowledged broker shutdown 或 verified fallback termination 後，除非已觀察到 worker exit，否則 active job files 必須保留。殘留 record 只增加人工 cleanup；終止無關 process 或刪除唯一 evidence 都不是可接受的 fallback。
+- Host delivery — 直接呼叫 hook 驗證 parsing 與 cleanup；互動式 Codex TUI probe 已確認 `SessionStart` 與 `SessionEnd` 會連同 workspace 與已安裝 plugin environment 一起送達。Hook process 不會收到 `CODEX_THREAD_ID`；其 payload identifier 會等於 transcript 的 `session_meta.id`，而 command 端的 `CODEX_THREAD_ID` 識別的正是該值。
+- Limits — acknowledged interrupt 只證明 Claude 接受 control request，不代表所有 child process 已退出，也不代表 job 已進入 terminal state。
+- Turn lifetime — runtime 不設定預設的總執行時間上限。呼叫端負責 idle 與 absolute monitoring，並可在任務需要時明確傳入 turn timeout；process 存活本身不代表 model 有進度。
+- Guard limit — endpoint guard 只縮小 final read 與 atomic rename 之間的區間，無法關閉它。Terminal write 若落在該區間仍可能被覆寫；要關閉它需要此 runtime 並未提供的真正 cross-process lock 或 compare-and-swap primitive。
+
+[返回頂端](#快速導覽)

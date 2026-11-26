@@ -314,9 +314,6 @@ service/table/sd-table.md	tag	persistence
 - 不改動既有的 `bd-*.md` 與 `sd-*.md`；它們在執行腳本時會被回報為缺少區塊，需另行補上。已知的既有文件：
     - 本 repository 的 `skills/claude/codex-plugin/` 下有 `docs/bd-bridge-runtime.md`、`sd-broker-session-lifecycle.md`、`sd-session-transfer.md`。修改前必須先讀 `docs/claude/UPSTREAM-PARITY.md`。
     - 其他使用此 skill 的專案，例如 `fgl-developer-portal`。
-- 不處理本 repository 既有的三份翻譯對應檔：`bd-bridge-runtime_ch.md`、`sd-broker-session-lifecycle_ch.md`、`sd-session-transfer_ch.md`。
-    - 它們不符合「文件沒有語言版本之分」的新定義，需另行決定保留哪個語言並移除另一份。
-    - 在那之前，腳本會把它們當成三份獨立文件，並回報缺少區塊。
 
 [回到目錄](#目錄)
 

@@ -1,34 +1,31 @@
 # Session Transfer
 
-## Quick Navigation
+## 快速導覽
 
-- [Responsibility and Boundary](#responsibility-and-boundary)
-- [Transfer Flow](#transfer-flow)
-- [Interfaces and Data Views](#interfaces-and-data-views)
-- [Caveats](#caveats)
-
----
-
-## Responsibility and Boundary
-
-This module turns a Codex transcript snapshot into the first turn of a new,
-bridge-owned Claude session and returns that session's identifier and
-`claude --resume` command. The handoff carries source provenance and the visible
-user and assistant conversation in chronological order. Unsupported visible
-content is represented by an explicit omission marker rather than disappearing
-silently.
-
-The result is a resumable Claude conversation, not a native import with separate
-historical turns. The bridge MUST create and persist the target only through the
-supported Claude CLI. It MUST NOT synthesize or edit files in Claude's private
-session store, mutate the Codex source, include hidden reasoning or host control
-records, or claim that omitted content was transferred.
-
-[Back to top](#quick-navigation)
+- [責任與邊界](#責任與邊界)
+- [Transfer 流程](#transfer-流程)
+- [介面與資料視圖](#介面與資料視圖)
+- [注意事項](#注意事項)
 
 ---
 
-## Transfer Flow
+## 責任與邊界
+
+此模組將 Codex transcript snapshot 轉成一個全新、bridge-owned Claude session 的
+第一個 turn，並回傳該 session 的 identifier 與 `claude --resume` command。Handoff
+依時間順序攜帶 source provenance 及可見的 user/assistant conversation；不支援的可見
+內容會以明確 omission marker 表示，不會無聲消失。
+
+結果是可續接的 Claude conversation，不是具有獨立歷史 turn 的原生匯入。Bridge 必須只
+透過受支援的 Claude CLI 建立並保存 target。它嚴禁在 Claude 私有 session store 內合成或
+編輯檔案、改動 Codex source、納入 hidden reasoning 或 host control record，也嚴禁宣稱已
+移轉被省略的內容。
+
+[返回頂端](#快速導覽)
+
+---
+
+## Transfer 流程
 
 ```mermaid
 sequenceDiagram
@@ -47,41 +44,39 @@ sequenceDiagram
     Command-->>User: Return identifier and resume command
 ```
 
-By default, the command resolves the current transcript from `CODEX_THREAD_ID`.
-An explicit source may select another Codex JSONL transcript. In both cases the
-canonical source MUST be an existing file beneath the Codex session store, and
-its metadata MUST identify one session. Resolution, complete snapshot reading,
-conversion, and successful Claude initialization occur before a resume command
-is reported.
+Command 預設依 `CODEX_THREAD_ID` 找到目前 transcript；明確提供 source 時可選擇另一份
+Codex JSONL transcript。兩種情況的 canonical source 都必須是 Codex session store
+底下既存的檔案，且 metadata 必須識別單一 session。必須依序完成解析、讀取完整 snapshot、
+轉換及成功初始化 Claude，才能回報 resume command。
 
-[Back to top](#quick-navigation)
+[返回頂端](#快速導覽)
 
 ---
 
-## Interfaces and Data Views
+## 介面與資料視圖
 
-- [Transfer command](commands/claude-transfer.md) — invokes one transfer and presents the returned Claude session identifier and resume command without overstating native history import.
-- [Codex transcript boundary](scripts/lib/codex-session-transfer.mjs) — resolves a safe source, validates its session identity, and converts supported conversation content into a provenance-bearing handoff.
-- [Companion command boundary](scripts/claude-companion.mjs) — coordinates validation, conversion, Claude initialization, and human or JSON output.
-- [Claude runtime](scripts/lib/claude.mjs) — verifies availability and performs the isolated seed turn.
-- [Claude CLI session](scripts/lib/claude-cli.mjs) — creates the named session through supported CLI flags and reports the session identifier observed from Claude.
-- [Session transfer core](scripts/lib/codex-session-transfer.mjs) — resolves and canonicalizes transcript paths before trusting a source.
+- [Transfer command](commands/claude-transfer.md) — 呼叫一次 transfer，呈現 Claude session identifier 與 resume command，且不誇稱為原生 history import。
+- [Codex transcript boundary](scripts/lib/codex-session-transfer.mjs) — 解析安全 source、驗證 session identity，並把支援的 conversation content 轉成帶 provenance 的 handoff。
+- [Companion command boundary](scripts/claude-companion.mjs) — 協調 validation、conversion、Claude initialization 及 human 或 JSON output。
+- [Claude runtime](scripts/lib/claude.mjs) — 驗證 availability 並執行隔離的 seed turn。
+- [Claude CLI session](scripts/lib/claude-cli.mjs) — 透過受支援的 CLI flag 建立具名 session，並回報從 Claude 觀察到的 session identifier。
+- [Session transfer core](scripts/lib/codex-session-transfer.mjs) — 在信任 source 前解析並 canonicalize transcript path。
 
-[Back to top](#quick-navigation)
+[返回頂端](#快速導覽)
 
 ---
 
-## Caveats
+## 注意事項
 
-- Idempotency — transfer is intentionally non-idempotent: each successful invocation creates a distinct Claude session. It leaves the Codex source unchanged and MUST NOT overwrite an earlier target.
-- Concurrency — concurrent transfers MUST use distinct target identifiers and independent immutable source snapshots. One transfer MUST NOT reuse another transfer's in-flight session.
-- Ordering — the complete source snapshot MUST be read before Claude starts. The resume command MUST be emitted only after Claude reports the persisted target identifier.
-- Source compatibility — only visible user and assistant text is carried as conversation. Non-conversation records are omitted; unsupported visible content is marked. Malformed JSONL, conflicting identity, or a source with no transferable conversation MUST fail explicitly.
-- Prompt boundary — provenance and visible messages MUST be serialized as one JSON value. Conversation strings MUST NOT be interpolated as prompt markup or delimiters.
-- Seed isolation — the initial handoff turn MUST disable built-in and MCP tools so transfer itself cannot change the workspace. Resuming the finished session is a separate user action with that invocation's permissions.
-- Failure behavior — path validation, conversion, availability, initialization, or protocol failure MUST return no success claim. If Claude exposed an identifier before a later failure, the diagnostic MUST report that possibly incomplete session rather than pretending it was rolled back.
-- Capacity — the transcript MUST NOT be silently truncated to fit a model context. If Claude rejects the complete handoff for size, the transfer fails and leaves the source untouched.
-- Host compatibility — Codex does not document a stable transcript-reading API or a native Claude importer. The isolated parser MUST reject incompatible required records instead of treating the observed private JSONL shape as permanently stable.
-- Acceptance — tests can verify conversion and CLI orchestration, but resumability requires a second-process probe that confirms provenance survives and that the bridge itself wrote no Claude session files.
+- Idempotency — transfer 刻意不是 idempotent：每次成功呼叫都建立不同的 Claude session；它不改動 Codex source，且嚴禁覆寫較早的 target。
+- Concurrency — concurrent transfer 必須使用不同的 target identifier 與彼此獨立的 immutable source snapshot；任一 transfer 嚴禁重用另一個 in-flight session。
+- Ordering — Claude 啟動前必須讀完 source snapshot；只有 Claude 回報已保存的 target identifier 後，才能輸出 resume command。
+- Source compatibility — conversation 只攜帶可見的 user/assistant text；non-conversation record 會略過，不支援的可見內容會標記。Malformed JSONL、identity 衝突或沒有可移轉 conversation 的 source 必須明確失敗。
+- Prompt boundary — provenance 與可見 messages 必須序列化為單一 JSON value。Conversation strings 嚴禁直接插值成 prompt markup 或 delimiter。
+- Seed isolation — 初始 handoff turn 必須停用 built-in 與 MCP tool，讓 transfer 本身不能改動 workspace；續接已完成的 session 是另一個使用其 invocation permission 的使用者動作。
+- Failure behavior — path validation、conversion、availability、initialization 或 protocol failure 都嚴禁回報成功。Claude 若在後續失敗前已公開 identifier，diagnostic 必須回報該可能不完整的 session，不能假裝已 rollback。
+- Capacity — transcript 嚴禁為了符合 model context 而無聲截斷。Claude 若因完整 handoff 過大而拒絕，transfer 失敗且 source 維持不變。
+- Host compatibility — Codex 未記錄穩定的 transcript-reading API，也沒有原生 Claude importer。隔離的 parser 必須拒絕不相容的必要 record，嚴禁把目前觀察到的私有 JSONL shape 視為永久穩定。
+- Acceptance — test 可驗證 conversion 與 CLI orchestration；resumability 仍需第二個 process probe，確認 provenance 在 resume 後仍存在，且 bridge 本身未寫入 Claude session file。
 
-[Back to top](#quick-navigation)
+[返回頂端](#快速導覽)
