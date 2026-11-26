@@ -121,9 +121,8 @@ func NewCommandDispatcher() *CommandDispatcher {
 
 // Run runs the command that name selects, and writes the reply to output.
 //
-//   - Precondition: output must be a non-nil value.
 //   - name is the command name, e.g. "ping".
-//   - output is the destination of the reply.
+//   - output is the destination of the reply, and must be a non-nil value.
 //   - An unknown name returns an error, and nothing is written to the output.
 //   - A write failure returns that error.
 func (dispatcher *CommandDispatcher) Run(name string, output io.Writer) error {
@@ -173,8 +172,7 @@ type CommandDispatcher struct {
 
 // NewCommandDispatcher creates a command dispatcher with the commands that the feature modules provide.
 //
-//   - Precondition: each element of handlers must be a non-nil value.
-//   - handlers are the commands to register.
+//   - handlers are the commands to register; each element must be a non-nil value.
 //   - Changing this slice after creation does not affect the dispatcher.
 //   - It returns an error when a name is an empty string or all whitespace, or when a name repeats.
 func NewCommandDispatcher(handlers []CommandHandler) (*CommandDispatcher, error) {
@@ -189,9 +187,8 @@ func NewCommandDispatcher(handlers []CommandHandler) (*CommandDispatcher, error)
 
 // Run runs the command that name selects, and writes the reply to output.
 //
-//   - Precondition: output must be a non-nil value.
 //   - name is the command name, e.g. "ping".
-//   - output is the destination of the reply.
+//   - output is the destination of the reply, and must be a non-nil value.
 //   - An unregistered name returns an error, and nothing is written to the output.
 //   - A write failure returns that error.
 func (dispatcher *CommandDispatcher) Run(name string, output io.Writer) error {
@@ -205,8 +202,8 @@ func (dispatcher *CommandDispatcher) Run(name string, output io.Writer) error {
 
 // register adds one command to the dispatch table.
 //
-//   - Precondition: table must be a created map, and handler must be a non-nil value.
-//   - table is the dispatch table under construction; handler is the command to add.
+//   - table is the dispatch table under construction, and must be a created map.
+//   - handler is the command to add, and must be a non-nil value.
 //   - It returns an error when the name is an empty string or all whitespace, or when the name is already in the table.
 func register(table map[string]CommandHandler, handler CommandHandler) error {
 	name := handler.Name()
@@ -263,7 +260,7 @@ func (StatusCommand) Run() string {
 
 ## Strategy
 
-- The project explicitly requires a growing set of shipping fee algorithms, each with its own settings. Charging by weight uses a base fee and a price per kilogram, and the flat rate uses a fee per delivery. A common internal pricing contract encapsulates the settings and the calculation of each algorithm; the service still selects the strategy for each order from the existing delivery method field of the order, and may keep a small selecting branch.
+- The project explicitly requires a growing set of shipping fee algorithms, each with its own settings. Charging by weight uses a base fee and a price per kilogram, and the flat rate uses a fee per delivery.
 
 - Shared declarations: the two structs declare only fields. The rates and the kilograms are unsigned integers, so they are never negative, and zero is allowed. An unknown delivery method returns an error; so does a fee charged by weight that exceeds the range of the return type.
 
@@ -299,15 +296,12 @@ type ShippingService struct {
 }
 
 // NewShippingService creates a shipping fee service from the rate settings.
-//
-//   - config is the rate settings of the delivery methods.
 func NewShippingService(config ShippingConfig) *ShippingService {
 	return &ShippingService{config: config}
 }
 
 // ShippingFee calculates the shipping fee of the delivery method that the order selects, in cents.
 //
-//   - order is the order to quote.
 //   - It returns an error when the delivery method is unknown, or when the result exceeds the range of the return type.
 func (service *ShippingService) ShippingFee(order ShippingOrder) (uint64, error) {
 	switch order.Method {
@@ -329,7 +323,7 @@ func (service *ShippingService) ShippingFee(order ShippingOrder) (uint64, error)
 }
 ```
 
-- The service owns the delivery methods, so selection stays in the `switch`. The algorithms use different rates, and more algorithms are expected. Separate functions can isolate the calculations. Here a strategy also keeps each algorithm's rates with its calculation. `flatRate` keeps the delivery fee, and `perKilogram` keeps the base fee and the price per kilogram. Once it selects an algorithm, the service calls it through the same `Fee(kilograms)` contract.
+- Assessment: each of the two algorithms has its own rates and calculation, and the project explicitly requires more algorithms; each new algorithm adds one branch to `ShippingFee` that reads its own settings from `ShippingConfig` and holds its own calculation, so the calculations of all algorithms accumulate in one function. Separate named functions can isolate the calculations; here a strategy also keeps the rates of each algorithm with its calculation: `flatRate` keeps the delivery fee, and `perKilogram` keeps the base fee and the price per kilogram. So the common internal pricing contract `Fee(kilograms)` encapsulates the settings and the calculation of each algorithm; the service owns the delivery methods, so it still selects the strategy for each order in a `switch`, from the existing delivery method field of the order.
 
 - After: the same settings create the private strategies, and the selecting responsibility stays in the service; the caller provides the existing order data.
 
@@ -361,10 +355,7 @@ type perKilogram struct {
 	cents     uint64 // Fee per whole kilogram, in cents.
 }
 
-// Fee calculates the fee charged by weight.
-//
-//   - kilograms is the weight in whole kilograms.
-//   - It returns an error when the result exceeds the range of the return type.
+// Fee returns the base fee plus the kilograms multiplied by the price per kilogram.
 func (policy perKilogram) Fee(kilograms uint64) (uint64, error) {
 	if policy.cents != 0 && kilograms > ^uint64(0)/policy.cents {
 		return 0, errFeeOverflow
@@ -383,8 +374,6 @@ type ShippingService struct {
 }
 
 // NewShippingService creates a shipping fee service from the rate settings.
-//
-//   - config is the rate settings of the delivery methods.
 func NewShippingService(config ShippingConfig) *ShippingService {
 	return &ShippingService{
 		flat:   flatRate{cents: config.FlatCents},
@@ -394,7 +383,6 @@ func NewShippingService(config ShippingConfig) *ShippingService {
 
 // ShippingFee calculates the shipping fee of the delivery method that the order selects, in cents.
 //
-//   - order is the order to quote.
 //   - It returns an error when the delivery method is unknown, or when the result exceeds the range of the return type.
 func (service *ShippingService) ShippingFee(order ShippingOrder) (uint64, error) {
 	var policy shippingPolicy

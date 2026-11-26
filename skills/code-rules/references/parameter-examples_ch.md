@@ -189,7 +189,6 @@ type MemberStore interface {
 //
 //   - 姓名或 email 無效的註冊資料不會送到儲存服務。
 //   - 未指定語系時，儲存的語系為 "zh-TW"。
-//   - registration 是新會員的註冊資料。
 func (service *MemberService) CreateMember(registration MemberRegistration) error {
 	if err := requireText(registration.Name, "name"); err != nil {
 		return err

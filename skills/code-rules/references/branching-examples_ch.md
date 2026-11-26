@@ -121,9 +121,8 @@ func NewCommandDispatcher() *CommandDispatcher {
 
 // Run 執行 name 指定的命令，並把回覆寫到 output。
 //
-//   - 前置條件：output 必須是非 nil 的值。
 //   - name 是命令名稱，例如 "ping"。
-//   - output 是回覆的輸出目的地。
+//   - output 是回覆的輸出目的地，必須是非 nil 的值。
 //   - 未知的名稱回傳錯誤，且不寫入輸出。
 //   - 寫入失敗時回傳該錯誤。
 func (dispatcher *CommandDispatcher) Run(name string, output io.Writer) error {
@@ -173,8 +172,7 @@ type CommandDispatcher struct {
 
 // NewCommandDispatcher 以各功能模組提供的命令建立命令執行器。
 //
-//   - 前置條件：handlers 的每個元素必須是非 nil 的值。
-//   - handlers 是要註冊的命令。
+//   - handlers 是要註冊的命令，每個元素必須是非 nil 的值。
 //   - 建立後再修改這個 slice 不影響執行器。
 //   - 名稱為空字串或全空白、或名稱重複時回傳錯誤。
 func NewCommandDispatcher(handlers []CommandHandler) (*CommandDispatcher, error) {
@@ -189,9 +187,8 @@ func NewCommandDispatcher(handlers []CommandHandler) (*CommandDispatcher, error)
 
 // Run 執行 name 指定的命令，並把回覆寫到 output。
 //
-//   - 前置條件：output 必須是非 nil 的值。
 //   - name 是命令名稱，例如 "ping"。
-//   - output 是回覆的輸出目的地。
+//   - output 是回覆的輸出目的地，必須是非 nil 的值。
 //   - 未註冊的名稱回傳錯誤，且不寫入輸出。
 //   - 寫入失敗時回傳該錯誤。
 func (dispatcher *CommandDispatcher) Run(name string, output io.Writer) error {
@@ -205,8 +202,8 @@ func (dispatcher *CommandDispatcher) Run(name string, output io.Writer) error {
 
 // register 把一個命令加入分派表。
 //
-//   - 前置條件：table 必須是已建立的 map，handler 必須是非 nil 的值。
-//   - table 是建立中的分派表；handler 是要加入的命令。
+//   - table 是建立中的分派表，必須是已建立的 map。
+//   - handler 是要加入的命令，必須是非 nil 的值。
 //   - 名稱為空字串或全空白、或名稱已在表中時回傳錯誤。
 func register(table map[string]CommandHandler, handler CommandHandler) error {
 	name := handler.Name()
@@ -263,7 +260,7 @@ func (StatusCommand) Run() string {
 
 ## Strategy
 
-- 專案明確要求持續增加各有設定的運費演算法。依重量計費使用起始費與公斤單價，固定費率則使用每次配送費用。以共同的內部計價契約封裝各演算法的設定與計算；服務仍依訂單既有的配送方式欄位逐筆選擇策略，可保留小段選擇分支。
+- 專案明確要求持續增加各有設定的運費演算法。依重量計費使用起始費與公斤單價，固定費率則使用每次配送費用。
 
 - 共同宣告：兩個 struct 只宣告欄位。各項費率與公斤數的型別是無號整數，不會為負，允許為零。未知的配送方式回傳錯誤；依重量計費的結果超出回傳型別範圍時也回傳錯誤。
 
@@ -299,15 +296,12 @@ type ShippingService struct {
 }
 
 // NewShippingService 依費率設定建立運費計算服務。
-//
-//   - config 是各配送方式的費率設定。
 func NewShippingService(config ShippingConfig) *ShippingService {
 	return &ShippingService{config: config}
 }
 
 // ShippingFee 計算訂單所選配送方式的運費，單位為分。
 //
-//   - order 是要報價的訂單。
 //   - 配送方式未知，或結果超出回傳型別的範圍時回傳錯誤。
 func (service *ShippingService) ShippingFee(order ShippingOrder) (uint64, error) {
 	switch order.Method {
@@ -329,7 +323,7 @@ func (service *ShippingService) ShippingFee(order ShippingOrder) (uint64, error)
 }
 ```
 
-- 配送方式由服務管理，因此保留 `switch` 選擇分支。各演算法使用不同的費率，後續還會新增演算法。具名函式可以分開各項計算。這裡採用策略，也讓每種演算法各自保存計算所需的費率。`flatRate` 保存每次配送的費用，`perKilogram` 保存基本費和每公斤費用。服務選定演算法後，統一透過 `Fee(kilograms)` 契約呼叫。
+- 判斷：兩種演算法各有自己的費率與計算，專案也明確要求持續增加；每新增一種，`ShippingFee` 就多一個分支，在其中讀取自己在 `ShippingConfig` 的設定並執行自己的計算，所有演算法的計算都集中在同一個函式。具名函式可以分開各項計算；這裡採用策略，也讓每種演算法各自保存計算所需的費率：`flatRate` 保存每次配送的費用，`perKilogram` 保存起始費和每公斤費用。所以以共同的內部計價契約 `Fee(kilograms)` 封裝各演算法的設定與計算；配送方式由服務管理，服務仍依訂單既有的配送方式欄位以 `switch` 逐筆選擇策略。
 
 - 調整後：以相同的設定建立私有的策略，選擇責任仍在服務內；呼叫端提供既有的訂單資料。
 
@@ -361,10 +355,7 @@ type perKilogram struct {
 	cents     uint64 // 每整數公斤的費用，單位為分。
 }
 
-// Fee 計算依重量計價的運費。
-//
-//   - kilograms 是整數公斤數。
-//   - 結果超出回傳型別的範圍時回傳錯誤。
+// Fee 回傳起始費加上公斤數乘以公斤單價的費用。
 func (policy perKilogram) Fee(kilograms uint64) (uint64, error) {
 	if policy.cents != 0 && kilograms > ^uint64(0)/policy.cents {
 		return 0, errFeeOverflow
@@ -383,8 +374,6 @@ type ShippingService struct {
 }
 
 // NewShippingService 依費率設定建立運費計算服務。
-//
-//   - config 是各配送方式的費率設定。
 func NewShippingService(config ShippingConfig) *ShippingService {
 	return &ShippingService{
 		flat:   flatRate{cents: config.FlatCents},
@@ -394,7 +383,6 @@ func NewShippingService(config ShippingConfig) *ShippingService {
 
 // ShippingFee 計算訂單所選配送方式的運費，單位為分。
 //
-//   - order 是要報價的訂單。
 //   - 配送方式未知，或結果超出回傳型別的範圍時回傳錯誤。
 func (service *ShippingService) ShippingFee(order ShippingOrder) (uint64, error) {
 	var policy shippingPolicy

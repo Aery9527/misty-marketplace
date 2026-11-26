@@ -189,7 +189,6 @@ type MemberStore interface {
 //
 //   - Registration data with an invalid name or email does not reach the store.
 //   - When no locale is given, the stored locale is "zh-TW".
-//   - registration is the registration data of the new member.
 func (service *MemberService) CreateMember(registration MemberRegistration) error {
 	if err := requireText(registration.Name, "name"); err != nil {
 		return err

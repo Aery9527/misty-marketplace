@@ -52,7 +52,7 @@ func (counter *RequestCounter) Increment() {
 
 // Flush writes the request count of the current interval, and starts the next interval.
 //
-//   - Call order: it must be called on a timer, e.g. once every 5 seconds.
+//   - Call timing: it must be called on a timer, e.g. once every 5 seconds.
 //   - The requests received between two calls make one interval; each request counts in exactly one interval.
 func (counter *RequestCounter) Flush() {
 	log.Printf("Request ALL %d", counter.count.Swap(0))
