@@ -203,30 +203,32 @@
 ### 用法
 
 ```text
-node <skill-root>/scripts/list-relations.mjs [--about <文件> [--follow <關係>] [--depth <深度>]] [--tag <tag>] [<repository-root>]
+node <skill-root>/scripts/list-relations.mjs [-a <文件> [-f <關係>] [-d <深度>]] [-t <tag>] [<repository-root>]
 ```
 
 - 省略 `<repository-root>` 時使用目前目錄。
-- 沒有 `--about` 也沒有 `--tag` 時，輸出整個 repository 的資料。
-- `--about` 與 `--tag` 不可同時使用。
+- 沒有 `-a` 也沒有 `-t` 時，輸出整個 repository 的資料。
+- `-a` 與 `-t` 不可同時使用。
+- 選項與選項的值只有縮寫一種寫法，沒有較長的別名。
+    - 原因：agent 每次呼叫都要輸出這些字，縮寫節省輸出的 token；只有一種寫法，規則文件與測試也不必涵蓋兩套。
 
 | 選項 | 意義 | 預設 |
 |---|---|---|
-| `--about <文件>` | 追查的起點；路徑相對於目前目錄，必須是 root 內的 `bd-*.md` 或 `sd-*.md` | 無 |
-| `--follow <關係>` | 廣度：要追查哪幾種關係，以 `,` 分隔 | 四種全部 |
-| `--depth <深度>` | 深度：從起點最多走幾條邊，正整數或 `all` | `1` |
-| `--tag <tag>` | 列出有效 tag 包含它的所有文件 | 無 |
+| `-a <文件>` | about，追查的起點；路徑相對於目前目錄，必須是 root 內的 `bd-*.md` 或 `sd-*.md` | 無 |
+| `-f <關係>` | follow，廣度：要追查哪幾種關係，把代表各關係的字母連寫，不加分隔符號，例如 `pu` | `pcdu`，即四種全部 |
+| `-d <深度>` | depth，深度：從起點最多走幾條邊，正整數或代表不限深度的 `a` | `1` |
+| `-t <tag>` | tag，列出有效 tag 包含它的所有文件 | 無 |
 
-`--follow` 可用的關係：
+`-f` 可用的關係：
 
-| 值 | 追查的對象 |
+| 字母 | 追查的對象 |
 |---|---|
-| `parents` | 上層：`parts` 連到該文件的文件 |
-| `children` | 下層：該文件的 `parts` 連到的文件 |
-| `dependencies` | 它依賴的文件：該文件的 `depends` 連到的文件 |
-| `dependents` | 依賴它的文件：`depends` 連到該文件的文件 |
+| `p` | parents，上層：`parts` 連到該文件的文件 |
+| `c` | children，下層：該文件的 `parts` 連到的文件 |
+| `d` | dependencies，它依賴的文件：該文件的 `depends` 連到的文件 |
+| `u` | used by，依賴它的文件：`depends` 連到該文件的文件 |
 
-- 深度大於 `1` 時，腳本對每一份走到的文件都再追查 `--follow` 指定的所有關係。
+- 深度大於 `1` 時，腳本對每一份走到的文件都再追查 `-f` 指定的所有關係。
 - 帶 `(planned)` 的邊會輸出，但不從它尚未存在的目標繼續追查。
 
 ### 輸出格式
@@ -246,8 +248,8 @@ node <skill-root>/scripts/list-relations.mjs [--about <文件> [--follow <關係
 | 模式 | 邊 | tag |
 |---|---|---|
 | 無查詢選項 | 全部 | 每份文件宣告的 tag；不含繼承的 |
-| `--about` | 追查時走過的每一條邊，各輸出一次 | 只有起點文件的有效 tag |
-| `--tag` | 不輸出 | 有效 tag 包含它的每份文件，各一列 |
+| `-a` | 追查時走過的每一條邊，各輸出一次 | 只有起點文件的有效 tag |
+| `-t` | 不輸出 | 有效 tag 包含它的每份文件，各一列 |
 
 ### 輸出範例
 
@@ -279,7 +281,7 @@ service/table/sd-table.md	parts	service/table/schema/sd-table-schema.md	定義�
 service/table/sd-table.md	tag	persistence
 ```
 
-`--about service/table/schema/sd-table-schema.md`，即直接相連的所有文件：
+`-a service/table/schema/sd-table-schema.md`，即直接相連的所有文件：
 
 ```text
 service/query/sd-query.md	depends	service/table/schema/sd-table-schema.md	依結構解析查詢條件中的欄位
@@ -289,7 +291,7 @@ service/table/schema/sd-table-schema.md	tag	persistence	inherited
 service/table/sd-table.md	parts	service/table/schema/sd-table-schema.md	定義欄位與型別
 ```
 
-`--about service/table/schema/sd-table-schema.md --follow parents --depth all`，即所有上層：
+`-a service/table/schema/sd-table-schema.md -f p -d a`，即所有上層：
 
 ```text
 docs/bd-backend-layers.md	parts	service/table/sd-table.md	保存資料列與資料表結構
@@ -298,7 +300,7 @@ service/table/schema/sd-table-schema.md	tag	persistence	inherited
 service/table/sd-table.md	parts	service/table/schema/sd-table-schema.md	定義欄位與型別
 ```
 
-`--tag persistence`：
+`-t persistence`：
 
 ```text
 service/table/rows/sd-table-rows.md	tag	persistence	inherited
@@ -346,12 +348,13 @@ service/table/sd-table.md	tag	persistence
 | 情況 | 結果 |
 |---|---|
 | 未知的選項，或選項缺少值 | 錯誤 |
-| `--about` 與 `--tag` 同時使用 | 錯誤 |
-| `--follow` 或 `--depth` 沒有搭配 `--about` | 錯誤 |
-| `--follow` 含有四種關係以外的值 | 錯誤 |
-| `--depth` 不是正整數也不是 `all` | 錯誤 |
-| `--about` 的文件不在 root 內，或不是 `bd-*.md`、`sd-*.md` | 錯誤 |
-| `--tag` 的值不在 `docs/code-mereology.json` 的 `tags` 中 | 錯誤 |
+| `-a` 與 `-t` 同時使用 | 錯誤 |
+| `-f` 或 `-d` 沒有搭配 `-a` | 錯誤 |
+| `-f` 的值含有 `p`、`c`、`d`、`u` 以外的字元，或同一個字母出現兩次 | 錯誤 |
+| `-d` 不是正整數也不是 `a` | 錯誤 |
+| 使用較長的選項名稱，例如 `--about` | 錯誤；屬於未知的選項 |
+| `-a` 的文件不在 root 內，或不是 `bd-*.md`、`sd-*.md` | 錯誤 |
+| `-t` 的值不在 `docs/code-mereology.json` 的 `tags` 中 | 錯誤 |
 
 [回到目錄](#目錄)
 
@@ -363,13 +366,13 @@ service/table/sd-table.md	tag	persistence
 
 | 時機 | 查詢 | 取得 |
 |---|---|---|
-| 階段之外修改既有程式碼前，已找到程式碼旁的 `sd-*.md` | `--about <該文件> --follow parents,dependents` | 指向它、修改後必須對照的文件 |
-| Phase 1 修改既有設計文件前 | `--about <該文件>` | 直接相連的文件，用來判斷變更的影響 |
-| Phase 1 需要找出與某個主題有關的文件 | 先讀 `docs/code-mereology.json` 的 `tags` 選出 tag，再用 `--tag <tag>` | 有效 tag 包含它的文件 |
-| Phase 3 冷載入，找出 leaf 的上層與依賴者 | `--about <leaf> --follow parents,dependents` | `parts` 指向它的是上層，`depends` 指向它的是依賴者 |
+| 階段之外修改既有程式碼前，已找到程式碼旁的 `sd-*.md` | `-a <該文件> -f pu` | 指向它、修改後必須對照的文件 |
+| Phase 1 修改既有設計文件前 | `-a <該文件>` | 直接相連的文件，用來判斷變更的影響 |
+| Phase 1 需要找出與某個主題有關的文件 | 先讀 `docs/code-mereology.json` 的 `tags` 選出 tag，再用 `-t <tag>` | 有效 tag 包含它的文件 |
+| Phase 3 冷載入，找出 leaf 的上層與依賴者 | `-a <leaf> -f pu` | `parts` 指向它的是上層，`depends` 指向它的是依賴者 |
 | Phase 3 檢查後，某份上層或依賴者改變了它對外描述的關係 | 對那份文件再執行同一個查詢 | 下一層要檢查的文件 |
 
-- 其他情況由 agent 依任務自行選擇 `--follow` 與 `--depth`。
+- 其他情況由 agent 依任務自行選擇 `-f` 與 `-d`。
 - agent 依每一條關係的說明，決定要讀取哪些文件；與手上任務無關的文件不讀。
 
 [回到目錄](#目錄)
