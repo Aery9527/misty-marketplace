@@ -41,6 +41,8 @@ import (
 )
 
 // RequestCounter counts the requests that the handler receives, and writes the count per interval.
+//
+//   - It is safe for concurrent use by multiple goroutines.
 type RequestCounter struct {
 	count atomic.Int64 // Number of requests received in the current interval.
 }
@@ -52,7 +54,7 @@ func (counter *RequestCounter) Increment() {
 
 // Flush writes the request count of the current interval, and starts the next interval.
 //
-//   - Call order: it must be called on a timer, e.g. once every 5 seconds.
+//   - Call timing: it must be called on a timer, e.g. once every 5 seconds.
 //   - The requests received between two calls make one interval; each request counts in exactly one interval.
 func (counter *RequestCounter) Flush() {
 	log.Printf("Request ALL %d", counter.count.Swap(0))

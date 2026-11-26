@@ -41,6 +41,8 @@ import (
 )
 
 // RequestCounter 統計處理入口收到的請求數，分區間輸出。
+//
+//   - 可由多個 goroutine 同時使用。
 type RequestCounter struct {
 	count atomic.Int64 // 目前區間收到的請求數。
 }
@@ -52,7 +54,7 @@ func (counter *RequestCounter) Increment() {
 
 // Flush 輸出目前區間的請求數，並開始下一個區間。
 //
-//   - 呼叫時序：必須定時呼叫，例如每 5 秒一次。
+//   - 呼叫時機：必須定時呼叫，例如每 5 秒一次。
 //   - 兩次呼叫之間收到的請求算作一個區間；每筆請求只計入一個區間。
 func (counter *RequestCounter) Flush() {
 	log.Printf("Request ALL %d", counter.count.Swap(0))
