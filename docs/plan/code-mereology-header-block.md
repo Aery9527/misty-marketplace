@@ -53,6 +53,9 @@
 - `parts` 與 `depends` 的每個項目獨立一行，格式為「連結: 說明」，說明寫明為什麼連到它。
     - 原因：腳本把說明連同關係一起輸出，agent 不必開啟來源文件，就能判斷要不要讀取對方的文件。
     - 區塊的 `parts` 取代現行內文中的下一層節點清單，同一份清單只寫在一處。
+- `bd-*.md` 的 `depends` 可以有值，連到與它有關聯的其他 `bd-*.md`。
+    - 原因：主題之間的關聯，例如一個業務系統需要另一個業務系統交付的結果，現行規則沒有地方可以寫。
+    - `depends` 的兩端必須同層；由腳本驗證。
 - 總 tag 表放在 repository 根目錄的設定檔 `docs/code-mereology.json`，位於 `tags` 鍵之下，格式為 `{"tags": {"tag1": "說明", "tag2": "說明"}}`；monorepo 也只有這一份。
     - 檔名取自 skill 名稱，tag 內縮一層，讓未來的其他設定能以新的頂層鍵加入同一個檔案。
     - tag 名稱只能由小寫英文字母與數字組成，中間最多用兩個 `-` 串接，也就是最多三段；規則為 `^[a-z0-9]+(-[a-z0-9]+){0,2}$`。
@@ -104,10 +107,15 @@
 
 | 文件 | `parts` | `depends` |
 |---|---|---|
-| `bd-*.md` | 下一層文件 | 留空 |
+| `bd-*.md` | 下一層文件 | 與這個主題有關聯的其他 `bd-*.md` |
 | overview 角色的 `sd-*.md` | 子層 `sd-*.md` | 留空 |
 | leaf 角色的 `sd-*.md` | 留空 | 它依賴的 leaf |
 | partial leaf | 留空 | 留空；現行規則禁止它畫依賴邊 |
+
+- `depends` 的兩端必須同層：`bd-*.md` 只連到 `bd-*.md`，`sd-*.md` 只連到 `sd-*.md`。
+- `bd-*.md` 的 `depends` 表示這個主題要成立，需要另一個主題交付的結果。
+    - 例：`docs/bd-order-checkout.md` 的 `depends` 寫 `[庫存管理](bd-inventory.md): 結帳時需要確認商品的可售數量`。
+    - 它不必對應到某一條 leaf 之間的依賴；兩個主題可以透過檔案交換或人工流程相連。
 
 [回到目錄](#目錄)
 
@@ -157,6 +165,7 @@
     - `bd-*.md` 現行的「下一層節點清單，每個節點附一句話說明它在這裡扮演的角色」。
     - overview 現行的「子層文件清單，每份附一句話」。
 - 區塊的 `depends` 取代 leaf 現行在內文中連到被依賴 leaf 的連結；關係圖仍必須畫出這條依賴。
+- 依賴邊不再只存在於 leaf 之間：`bd-*.md` 之間也可以有依賴邊。現行規則「依賴邊只存在於 leaf 之間」改為「依賴邊只存在於同層之間」。
 
 [回到目錄](#目錄)
 
@@ -326,6 +335,7 @@ service/table/sd-table.md	tag	persistence
 | 連結沒有 `(planned)`，但目標不存在 | 錯誤 |
 | 連結有 `(planned)`，但目標已存在 | 錯誤 |
 | 目標不是 `bd-*.md` 或 `sd-*.md`，或是 `-plan`、`-perf` 檔 | 錯誤 |
+| `depends` 的兩端不同層：`bd-*.md` 連到 `sd-*.md`，或 `sd-*.md` 連到 `bd-*.md` | 錯誤 |
 | tag 不在 `docs/code-mereology.json` 的 `tags` 中；該檔不存在或沒有 `tags` 鍵時，視為沒有任何 tag | 錯誤 |
 | 文件宣告了它已繼承的 tag | 錯誤；訊息指出 tag 名稱與宣告它的上層文件 |
 | `parts` 的連結形成循環 | 錯誤；繼承在循環上沒有定義 |
@@ -418,7 +428,7 @@ service/table/sd-table.md	tag	persistence
 每份文件的英文檔與 `_ch` 檔在同一次變更中同步修改。
 
 - `skills/code-mereology/SKILL.md`：
-    - 「文件模型」新增區塊的定義與格式，並把結構邊改為由區塊宣告；`bd-*.md` 的「下一層實際節點必須另用 Markdown 連結清單列出」改為由 `parts` 列出。
+    - 「文件模型」新增區塊的定義與格式，並把結構邊改為由區塊宣告；`bd-*.md` 的「下一層實際節點必須另用 Markdown 連結清單列出」改為由 `parts` 列出；依賴邊的定義加上 `bd-*.md` 之間的依賴。
     - 「文件模型」新增 tag 繼承的規則、tag 的命名規則與設定檔 `docs/code-mereology.json`。
     - 「文件模型」新增[文件鏈的完整性](#文件鏈的完整性)的兩條歸屬規則：一般的 `sd-*.md` 必須能從某份 `bd-*.md` 沿 `parts` 走到；partial leaf 必須被至少一份文件連到。
     - 新增 `list-relations.mjs` 的用法與選項。
@@ -428,6 +438,7 @@ service/table/sd-table.md	tag	persistence
     - 組裝文件與 overview 的內容順序移除最後的節點清單；「Markdown 連結清單」的規則改為描述 `parts`，包含「新增沿用相同規則的既有角色實例時只更新 `parts`」。
     - leaf 的依賴規則改為：依賴寫在 `depends`，並在關係圖中畫出。
     - 寫明 `parts` 與 `depends` 的說明要寫什麼。
+    - 「落點決策」第 7 點的「依賴邊只存在於 leaf 之間」改為同層之間，並寫明 `bd-*.md` 的 `depends` 表示什麼。
     - 「partial leaf」補上標記與區塊的先後，以及 `depends` 留空。
     - 「遞迴與 gate」補上：
         - 寫節點時填區塊。
@@ -438,6 +449,7 @@ service/table/sd-table.md	tag	persistence
     - 補上[使用時機](#agent-的使用時機)表中 Phase 1 的兩個查詢。
     - 「產出物」補上：對 repository 執行 `list-relations.mjs` 沒有錯誤。
 - `skills/code-mereology/references/phase3-tdd.md`：冷載入程序第 3 點與執行流程第 7 點，改為用[使用時機](#agent-的使用時機)表中 Phase 3 的兩個查詢。
+    - 執行流程第 7 點補上：依賴者是 `bd-*.md` 時，檢查它描述的關聯是否仍然成立；它沒有自己的測試可以執行。
 - `skills/code-mereology/CODE-MEREOLOGY.md`：
     - 檔名規則表加上 `docs/code-mereology.json`。
     - 「值得知道的決策」加兩則：區塊的用意、tag 繼承。
