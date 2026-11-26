@@ -23,6 +23,7 @@
 - agent 可以透過腳本用更少但精準的資訊來連結到所有與它有關聯的文件。
 - 驗收條件：
     - agent 從一份文件或一個 tag 出發，一次腳本呼叫就取得相關文件的路徑與關係型別。
+    - 腳本輸出每一條關係的說明，agent 據此判斷要不要讀取對方的文件。
     - agent 不必為了找出關聯而讀取無關文件的內容。
     - agent 能自行決定要追查的深度與廣度，腳本只輸出該範圍內的資料。
 
@@ -49,6 +50,9 @@
     - 原因：關係仍是可點擊的 Markdown link，`(planned)` 標記與 `list-planned.mjs` 不必修改；Node.js 標準函式庫也沒有 YAML 解析器。
 - 關係分成組成（`parts`）與依賴（`depends`）兩種。
     - 原因：邊的型別是腳本無法從內文推得的資訊；分開後腳本可直接算出每份文件的上層與依賴者。
+- `parts` 與 `depends` 的每個項目獨立一行，格式為「連結: 說明」，說明寫明為什麼連到它。
+    - 原因：腳本把說明連同關係一起輸出，agent 不必開啟來源文件，就能判斷要不要讀取對方的文件。
+    - 區塊的 `parts` 取代現行內文中的下一層節點清單，同一份清單只寫在一處。
 - 總 tag 表放在 repository 根目錄的設定檔 `docs/code-mereology.json`，位於 `tags` 鍵之下，格式為 `{"tags": {"tag1": "說明", "tag2": "說明"}}`；monorepo 也只有這一份。
     - 檔名取自 skill 名稱，tag 內縮一層，讓未來的其他設定能以新的頂層鍵加入同一個檔案。
     - 總 tag 表與文件的 `tags` 必須雙向一致：文件用到的 tag 必須在表中，表中的每個 tag 必須至少被一份文件宣告；由腳本驗證。
@@ -69,21 +73,28 @@
 # 主題
 
 - `parts`:
-- `depends`: [資料表結構](../schema/sd-table-schema.md)、[列快取](../cache/sd-row-cache.md) (planned)
+- `depends`:
+    - [資料表結構](../schema/sd-table-schema.md): 寫入前依結構驗證每一列的欄位
+    - [列快取](../cache/sd-row-cache.md) (planned): 讀取時先查快取
 - `tags`: `search`
 
 ## Table of Contents
 ```
 
 - 位置：H1 之後、第一個 `## ` 標題之前。partial leaf 的 `code-mereology-partial` 標記維持在標題正下方，區塊接在它之後。
-- 三個鍵 `parts`、`depends`、`tags` 都必須出現且各一次，順序固定；沒有值時冒號後留空。
+- 三個鍵 `parts`、`depends`、`tags` 都必須出現且各一次，順序固定。
+    - 沒有值時，`parts` 與 `depends` 不帶子項目，`tags` 的冒號後留空。
     - 原因：腳本才能分辨「沒有」與「漏寫」。
-- `parts` 與 `depends` 的值是 inline link，形式與現行 planned link 的規定相同：單行、無 title、label 無方括號、目的地無空白或括號。
-- 目標尚未存在時，在連結後標 `(planned)`。
-- `tags` 的值是 inline code，每個都必須是 `docs/code-mereology.json` 中 `tags` 的鍵，大小寫須相同。
-- `tags` 只寫這份文件自己宣告的 tag，嚴禁寫入已繼承的 tag；見 [tag 繼承](#tag-繼承)。
-- 項目之間以 `、` 或 `,` 分隔。
-- 只列 `bd-*.md` 與 `sd-*.md`；不列程式碼、`-plan`、`-perf`，也不列指回上層的導航連結。
+- `parts` 與 `depends` 的項目：
+    - 每個項目是鍵下方一行縮排的清單項目，格式為 `- <連結>: <說明>`；鍵的那一行冒號後不寫內容。
+    - 目標尚未存在時，在連結後標 `(planned)`，格式為 `- <連結> (planned): <說明>`。
+    - 連結是 inline link，形式與現行 planned link 的規定相同：單行、無 title、label 無方括號、目的地無空白或括號。一個項目只有一個連結。
+    - 說明必填，只寫一行，寫明為什麼連到它：`parts` 寫該文件在這個組成中扮演的角色，`depends` 寫需要對方提供的能力。
+    - 只列 `bd-*.md` 與 `sd-*.md`；不列程式碼、`-plan`、`-perf`，也不列指回上層的導航連結。
+- `tags` 的項目：
+    - 值是 inline code，寫在鍵的同一行，項目之間以 `、` 或 `,` 分隔。
+    - 每個都必須是 `docs/code-mereology.json` 中 `tags` 的鍵，大小寫須相同。
+    - 只寫這份文件自己宣告的 tag，嚴禁寫入已繼承的 tag；見 [tag 繼承](#tag-繼承)。
 - 區塊計入 300 行上限；現行規則已把純連結行計入。
 
 各角色填寫的內容：
@@ -139,7 +150,10 @@
 ## 模型上的改變
 
 - 結構邊的定義改為「區塊中 `parts` 與 `depends` 的連結」。內文中其他指向 `.md` 的連結一律不是結構邊。
-- 內文仍依現行撰寫規則列出下一層節點與一句話說明；它必須與區塊一致。
+- 區塊的 `parts` 取代現行內文中的清單，內文不再重複列出：
+    - `bd-*.md` 現行的「下一層節點清單，每個節點附一句話說明它在這裡扮演的角色」。
+    - overview 現行的「子層文件清單，每份附一句話」。
+- 區塊的 `depends` 取代 leaf 現行在內文中連到被依賴 leaf 的連結；關係圖仍必須畫出這條依賴。
 
 [回到目錄](#目錄)
 
@@ -214,13 +228,14 @@ node <skill-root>/scripts/list-relations.mjs [--about <文件> [--follow <關係
 
 ### 輸出格式
 
-- 每列一筆資料，欄位以 tab 分隔：`<文件>`、`<種類>`、`<值>`、選用的 `<註記>`。
+- 每列一筆資料，欄位以 tab 分隔。前三欄固定是 `<文件>`、`<種類>`、`<值>`；其後的欄位隨種類而不同，`<註記>` 是選用的最後一欄。
 
-| 種類 | 值 | 註記 |
-|---|---|---|
-| `parts`、`depends` | 目標文件的路徑 | 目標尚未存在時為 `planned` |
-| `tag` | tag 名稱 | 該 tag 是繼承來的時為 `inherited` |
+| 種類 | 欄位 | 值 | 說明 | 註記 |
+|---|---|---|---|---|
+| `parts`、`depends` | `<文件>`、`<種類>`、`<值>`、`<說明>`、選用的 `<註記>` | 目標文件的路徑 | 區塊中該項目的說明，原樣輸出 | 目標尚未存在時為 `planned` |
+| `tag` | `<文件>`、`<種類>`、`<值>`、選用的 `<註記>` | tag 名稱 | 無此欄 | 該 tag 是繼承來的時為 `inherited` |
 
+- 說明屬於宣告該關係的文件，也就是第一欄的文件。追查上層或依賴者時，說明寫的是對方為什麼連到起點文件。
 - 路徑相對於 repository root，使用正斜線。
 - 文件依路徑不分大小寫排序。同一份文件內的順序：`parts`、`depends`、宣告的 tag，三者依區塊順序；之後是繼承的 tag，依名稱排序。
 - 各模式輸出的範圍：
@@ -238,44 +253,46 @@ node <skill-root>/scripts/list-relations.mjs [--about <文件> [--follow <關係
 | 檔案 | 內容 |
 |---|---|
 | `docs/code-mereology.json` | `{"tags": {"backend": "後端服務層", "persistence": "資料存取", "search": "查詢功能"}}` |
-| `docs/bd-backend-layers.md` | `parts` 連到 `sd-table.md` 與 `sd-query.md`；`tags` 為 `backend` |
-| `service/table/sd-table.md` | `parts` 連到 `sd-table-rows.md` 與 `sd-table-schema.md`；`tags` 為 `persistence` |
-| `service/table/rows/sd-table-rows.md` | `depends` 連到 `sd-table-schema.md`，以及尚未存在並標了 `(planned)` 的 `../cache/sd-row-cache.md`；`tags` 留空 |
+| `docs/bd-backend-layers.md` | `parts` 連到 `sd-table.md`（保存資料列與資料表結構）與 `sd-query.md`（依條件查出資料列）；`tags` 為 `backend` |
+| `service/table/sd-table.md` | `parts` 連到 `sd-table-rows.md`（讀寫資料列）與 `sd-table-schema.md`（定義欄位與型別）；`tags` 為 `persistence` |
+| `service/table/rows/sd-table-rows.md` | `depends` 連到 `sd-table-schema.md`（寫入前依結構驗證每一列的欄位），以及尚未存在並標了 `(planned)` 的 `../cache/sd-row-cache.md`（讀取時先查快取）；`tags` 留空 |
 | `service/table/schema/sd-table-schema.md` | 三個鍵都留空 |
-| `service/query/sd-query.md` | `depends` 連到 `sd-table-schema.md`；`tags` 為 `search` |
+| `service/query/sd-query.md` | `depends` 連到 `sd-table-schema.md`（依結構解析查詢條件中的欄位）；`tags` 為 `search` |
+
+- 括號內是該項目在區塊中的說明。
 
 無查詢選項：
 
 ```text
-docs/bd-backend-layers.md	parts	service/table/sd-table.md
-docs/bd-backend-layers.md	parts	service/query/sd-query.md
+docs/bd-backend-layers.md	parts	service/table/sd-table.md	保存資料列與資料表結構
+docs/bd-backend-layers.md	parts	service/query/sd-query.md	依條件查出資料列
 docs/bd-backend-layers.md	tag	backend
-service/query/sd-query.md	depends	service/table/schema/sd-table-schema.md
+service/query/sd-query.md	depends	service/table/schema/sd-table-schema.md	依結構解析查詢條件中的欄位
 service/query/sd-query.md	tag	search
-service/table/rows/sd-table-rows.md	depends	service/table/schema/sd-table-schema.md
-service/table/rows/sd-table-rows.md	depends	service/table/cache/sd-row-cache.md	planned
-service/table/sd-table.md	parts	service/table/rows/sd-table-rows.md
-service/table/sd-table.md	parts	service/table/schema/sd-table-schema.md
+service/table/rows/sd-table-rows.md	depends	service/table/schema/sd-table-schema.md	寫入前依結構驗證每一列的欄位
+service/table/rows/sd-table-rows.md	depends	service/table/cache/sd-row-cache.md	讀取時先查快取	planned
+service/table/sd-table.md	parts	service/table/rows/sd-table-rows.md	讀寫資料列
+service/table/sd-table.md	parts	service/table/schema/sd-table-schema.md	定義欄位與型別
 service/table/sd-table.md	tag	persistence
 ```
 
 `--about service/table/schema/sd-table-schema.md`，即直接相連的所有文件：
 
 ```text
-service/query/sd-query.md	depends	service/table/schema/sd-table-schema.md
-service/table/rows/sd-table-rows.md	depends	service/table/schema/sd-table-schema.md
+service/query/sd-query.md	depends	service/table/schema/sd-table-schema.md	依結構解析查詢條件中的欄位
+service/table/rows/sd-table-rows.md	depends	service/table/schema/sd-table-schema.md	寫入前依結構驗證每一列的欄位
 service/table/schema/sd-table-schema.md	tag	backend	inherited
 service/table/schema/sd-table-schema.md	tag	persistence	inherited
-service/table/sd-table.md	parts	service/table/schema/sd-table-schema.md
+service/table/sd-table.md	parts	service/table/schema/sd-table-schema.md	定義欄位與型別
 ```
 
 `--about service/table/schema/sd-table-schema.md --follow parents --depth all`，即所有上層：
 
 ```text
-docs/bd-backend-layers.md	parts	service/table/sd-table.md
+docs/bd-backend-layers.md	parts	service/table/sd-table.md	保存資料列與資料表結構
 service/table/schema/sd-table-schema.md	tag	backend	inherited
 service/table/schema/sd-table-schema.md	tag	persistence	inherited
-service/table/sd-table.md	parts	service/table/schema/sd-table-schema.md
+service/table/sd-table.md	parts	service/table/schema/sd-table-schema.md	定義欄位與型別
 ```
 
 `--tag persistence`：
@@ -298,7 +315,9 @@ service/table/sd-table.md	tag	persistence
 | 情況 | 結果 |
 |---|---|
 | 文件缺少某個鍵，或同一個鍵出現兩次 | 錯誤 |
-| 鍵的值含有無法辨識的內容，例如 reference-style link | 錯誤 |
+| `parts` 或 `depends` 的項目不符合 `- <連結>: <說明>`，例如 reference-style link、一個項目有多個連結、鍵的那一行冒號後有內容 | 錯誤 |
+| `parts` 或 `depends` 的項目沒有說明，或說明含有 tab 字元 | 錯誤 |
+| `tags` 的值含有 inline code 與分隔符號以外的內容 | 錯誤 |
 | 連結沒有 `(planned)`，但目標不存在 | 錯誤 |
 | 連結有 `(planned)`，但目標已存在 | 錯誤 |
 | 目標不是 `bd-*.md` 或 `sd-*.md`，或是 `-plan`、`-perf` 檔 | 錯誤 |
@@ -314,7 +333,7 @@ service/table/sd-table.md	tag	persistence
 | 檔案不是 UTF-8 | 錯誤，其他檔案照常處理 |
 
 - 例：`sd-table-rows.md` 的 `tags` 寫了 `backend` 時，stderr 為
-  `ERROR service/table/rows/sd-table-rows.md:5: tag "backend" is inherited from docs/bd-backend-layers.md`。
+  `ERROR service/table/rows/sd-table-rows.md:7: tag "backend" is inherited from docs/bd-backend-layers.md`。
 - 例：`sd-query.md` 的 `tags` 改為留空後，沒有文件宣告 `search`，stderr 為
   `ERROR docs/code-mereology.json: tag "search" is not declared by any document`。
 
@@ -347,6 +366,7 @@ service/table/sd-table.md	tag	persistence
 | Phase 3 檢查後，某份上層或依賴者改變了它對外描述的關係 | 對那份文件再執行同一個查詢 | 下一層要檢查的文件 |
 
 - 其他情況由 agent 依任務自行選擇 `--follow` 與 `--depth`。
+- agent 依每一條關係的說明，決定要讀取哪些文件；與手上任務無關的文件不讀。
 
 [回到目錄](#目錄)
 
@@ -391,13 +411,16 @@ service/table/sd-table.md	tag	persistence
 每份文件的英文檔與 `_ch` 檔在同一次變更中同步修改。
 
 - `skills/code-mereology/SKILL.md`：
-    - 「文件模型」新增區塊的定義與格式，並把結構邊改為由區塊宣告。
+    - 「文件模型」新增區塊的定義與格式，並把結構邊改為由區塊宣告；`bd-*.md` 的「下一層實際節點必須另用 Markdown 連結清單列出」改為由 `parts` 列出。
     - 「文件模型」新增 tag 繼承的規則與設定檔 `docs/code-mereology.json`。
     - 「文件模型」新增[文件鏈的完整性](#文件鏈的完整性)的兩條歸屬規則：一般的 `sd-*.md` 必須能從某份 `bd-*.md` 沿 `parts` 走到；partial leaf 必須被至少一份文件連到。
     - 新增 `list-relations.mjs` 的用法與選項。
     - 「階段之外的程式碼修改」補上[使用時機](#agent-的使用時機)表中對應的查詢。
 - `skills/code-mereology/references/phase1-design.md`：
     - 組裝文件、leaf、overview 三種撰寫規則的內容順序最前面加上區塊。
+    - 組裝文件與 overview 的內容順序移除最後的節點清單；「Markdown 連結清單」的規則改為描述 `parts`，包含「新增沿用相同規則的既有角色實例時只更新 `parts`」。
+    - leaf 的依賴規則改為：依賴寫在 `depends`，並在關係圖中畫出。
+    - 寫明 `parts` 與 `depends` 的說明要寫什麼。
     - 「partial leaf」補上標記與區塊的先後，以及 `depends` 留空。
     - 「遞迴與 gate」補上：
         - 寫節點時填區塊。
