@@ -89,9 +89,8 @@ flowchart TD
     class Code code
 ```
 
-實線箭頭是組成——一個節點由什麼構成。虛線箭頭是依賴——一個模組需要別處提供什麼能力。依賴不等於組成，因此 `sd-charge.md` 即使連了出去，它仍然是 leaf。
-
-Phase 3 會從它剛實作完的 leaf 沿這張圖反向回溯，所以每一條邊都必須是真實的連結，而不是靠語意暗示的關係。
+- 文件間的實線箭頭表示組成，虛線箭頭表示依賴。`sd-charge.md` 需要風險檢查模組提供能力，因此仍是 leaf。
+- Leaf 指向程式碼的箭頭是正文中的介面連結。[list-relations.mjs](scripts/list-relations.mjs) 走訪標頭中的文件連結。Phase 3 用它反向找出受影響的上層與依賴者。
 
 [返回開頭](#快速導覽)
 
@@ -105,6 +104,7 @@ Phase 3 會從它剛實作完的 leaf 沿這張圖反向回溯，所以每一條
 | `sd-<功能>.md` | 與它所描述的程式碼放在一起 | 單一模組：它的職責、邊界與注意事項 |
 | `sd-<功能>-plan.md` | 與既有設計文件放在一起 | 預計日後執行的暫存工作，每份檔案可有多筆以 `---` 分隔的條目；不在文件圖中，各筆條目交付後個別刪除 |
 | `sd-<功能>-perf.md` | 與它所量測的程式碼放在一起 | 最近三次的效能量測結果，每筆釘在一個 commit 上 |
+| `docs/code-mereology.json` | Repository 根目錄 | 全庫共用的 tag 表與文件掃描排除目錄 |
 
 monorepo 採用同一模型的巢狀結構：repository 根目錄一個 `docs/` 說明各 submodule 如何組裝，每個 submodule 根目錄再各有一個說明自己內部。
 
@@ -128,7 +128,9 @@ monorepo 採用同一模型的巢狀結構：repository 根目錄一個 `docs/` 
 
 **每個測試檔都在檔頭註解寫出自己所屬的設計文件。** 靠「文件就放在程式碼旁邊」來推斷擁有者，一路可行到某個資料夾多出第二份設計文件為止，然後它就無聲失效。
 
-**既有模組是一次補一個能力面。** 當新功能依賴到一份沒有設計文件的程式碼時，解法不是先把那整個模組寫完，而是一份只涵蓋被依賴能力面、並標記為 partial 的 leaf。它一次長一個能力面——Phase 2 不肯替一個文件尚未涵蓋的行為定規格——直到最後一面也寫完，標記就拿掉。
+- **既有模組是一次補一個能力面。** 新功能依賴沒有設計文件的既有模組時，先寫一份只涵蓋所需能力的 partial leaf。Phase 2 只能使用已涵蓋的能力。最後一個能力寫完時，移除標記並將文件接回主題。
+- **文件關係宣告在標頭。** `parts` 記錄組成，`depends` 記錄所需能力或其他主題交付的結果。每個連結附上理由，幫助讀者判斷要開啟哪些文件。
+- **Tag 沿組成傳遞。** 主題宣告的 tag 適用於其下層文件。透過繼承，查詢能找到相關模組，而每個模組可省略重複的 tag 宣告。
 
 [返回開頭](#快速導覽)
 
@@ -143,6 +145,9 @@ monorepo 採用同一模型的巢狀結構：repository 根目錄一個 `docs/` 
 - [Phase 3 — 實作](references/phase3-tdd_ch.md)
 - [Phase 4 — 效能驗證](references/phase4-benchmark_ch.md)
 
-另有三支腳本支援這套流程：[count-lines.mjs](scripts/count-lines.mjs) 負責行數上限，[list-planned.mjs](scripts/list-planned.mjs) 負責列出目標尚未存在的連結，[list-plans.mjs](scripts/list-plans.mjs) 負責列出 repository 中仍存在的延後 plan。
+- [count-lines.mjs](scripts/count-lines.mjs) 檢查行數上限。
+- [list-planned.mjs](scripts/list-planned.mjs) 找出目標尚未存在的連結。
+- [list-plans.mjs](scripts/list-plans.mjs) 找出延後變更計畫。
+- [list-relations.mjs](scripts/list-relations.mjs) 驗證文件關係圖，並查詢關係與 tag。
 
 [返回開頭](#快速導覽)

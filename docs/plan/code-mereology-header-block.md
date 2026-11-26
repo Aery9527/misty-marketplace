@@ -1,6 +1,6 @@
 # code-mereology 標頭區塊與 tag 表計畫
 
-- 本計畫描述預計對 skill `code-mereology` 做的變更；所列內容均為待實作，不代表目前的 skill 已提供。
+- 本文件記錄 `code-mereology` 的標頭、關係查詢與遷移計畫。操作規則與查詢入口見 [code-mereology](../../skills/code-mereology/SKILL_ch.md)。
 - 做法是讓每份 `bd-*.md` 與 `sd-*.md` 在開頭以結構化方式宣告它的關係與 tag，並提供一支 Node.js 腳本查詢它們。
 
 ## 目錄
@@ -40,10 +40,10 @@
 
 ## 背景
 
-- 現行 skill 的結構邊散在內文連結中。組成、依賴、指回上層的導航三種連結只能靠語意判讀，腳本無法分辨。
+- 本節描述導入標頭前的規則。當時的結構邊散在內文之中，組成、依賴與指回上層的導航連結須依語意判讀。
 - agent 因此要逐份讀文件，才能判斷哪些文件是某份文件的上層、哪些是依賴者；Phase 3 的反向回溯就是這樣進行的。
-- 現行 skill 沒有依主題找文件的方法。
-- 連到尚未存在的文件時，現行規則靠連結後的 `(planned)` 標記與 `list-planned.mjs` 追蹤。
+- 改版前沒有依主題找文件的方式。
+- 尚未存在的文件由連結後的 `(planned)` 標記與 `list-planned.mjs` 追蹤。
 - partial leaf 已有一行寫在標題正下方的 `code-mereology-partial` 標記。
 - skill 隨附的腳本只用 Node.js 標準函式庫。
 

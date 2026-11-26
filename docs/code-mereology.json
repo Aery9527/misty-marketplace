@@ -1,0 +1,8 @@
+{
+    "tags": {
+        "claude-bridge": "Claude Code Bridge 的執行、工作生命週期與會話移轉"
+    },
+    "exclude": [
+        "codex-plugins"
+    ]
+}

@@ -109,12 +109,8 @@ flowchart TD
     class Code code
 ```
 
-Solid arrows are composition — what a node is made of. The dashed arrow is
-dependency — what a module needs from elsewhere. Depending on a module is not
-composing with it, so `sd-charge.md` stays a leaf even though it links out.
-
-Phase 3 walks this graph in reverse from the leaf it just implemented, which is
-why every edge has to be a real link rather than an implied relationship.
+- Solid arrows between documents are composition. The dashed arrow is a dependency. `sd-charge.md` stays a leaf because it needs risk checking as a capability.
+- The arrow from a leaf to code is an interface link in the body. [list-relations.mjs](scripts/list-relations.mjs) follows the links between documents in their headers. Phase 3 uses it in reverse to find affected parents and dependents.
 
 [Back to top](#quick-navigation)
 
@@ -128,6 +124,7 @@ why every edge has to be a real link rather than an implied relationship.
 | `sd-<feature>.md` | Beside the code it describes | One module: its responsibility, boundary, and caveats |
 | `sd-<feature>-plan.md` | Beside its existing design document | Temporary work intended for later, one or more `---`-separated entries per file; outside the document graph, each entry deleted after its delivery |
 | `sd-<feature>-perf.md` | Beside the code it measures | The three most recent performance measurements, each pinned to a commit |
+| `docs/code-mereology.json` | Repository root | One tag table and directory exclusions for the document scan |
 
 A monorepo nests the same model: one `docs/` at the repository root for how
 submodules assemble, plus one at each submodule root for its own internals.
@@ -169,12 +166,9 @@ reviewed is the tests themselves rather than a list of cases to tick off.
 owner from what sits next to the code works right up until a folder gains a
 second design document, and then it breaks silently.
 
-**An existing module gets documented one capability at a time.** When a new
-feature depends on code that has no design document, the answer is not to
-document that whole module first — it is a partial leaf covering only the
-capability being depended on, marked as partial. It grows a capability at a time
-— Phase 2 refuses to specify a behavior the document does not yet cover — until
-the last one is described and the marker comes off.
+- **An existing module gets documented one capability at a time.** A new use of an undocumented module starts with a partial leaf covering only the capability needed. Phase 2 can use only covered capabilities. Once the final capability is covered, remove the marker and connect the document to a topic.
+- **Relationships are declared in headers.** `parts` identifies composition. `depends` identifies a required capability or topic outcome. The reason beside a link helps readers decide which documents to open.
+- **Tags follow composition.** A tag declared on a topic applies to its descendants. Inherited tags let a query find module documents without repeating tag declarations.
 
 [Back to top](#quick-navigation)
 
@@ -190,9 +184,9 @@ This file is an overview. The rules an agent actually follows are in
 - [Phase 3 — Implementation](references/phase3-tdd.md)
 - [Phase 4 — Performance Verification](references/phase4-benchmark.md)
 
-Three scripts support the workflow: [count-lines.mjs](scripts/count-lines.mjs) for
-the line limit, [list-planned.mjs](scripts/list-planned.mjs) for links whose target
-does not exist yet, and [list-plans.mjs](scripts/list-plans.mjs) for deferred plans
-that remain in a repository.
+- [count-lines.mjs](scripts/count-lines.mjs) checks the line limit.
+- [list-planned.mjs](scripts/list-planned.mjs) finds links to targets that do not exist yet.
+- [list-plans.mjs](scripts/list-plans.mjs) finds deferred plans.
+- [list-relations.mjs](scripts/list-relations.mjs) validates the document graph and queries links and tags.
 
 [Back to top](#quick-navigation)

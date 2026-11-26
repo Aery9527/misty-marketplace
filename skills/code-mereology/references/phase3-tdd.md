@@ -19,7 +19,7 @@ Loaded without any prior context, MUST establish these three things before writi
 
 1. The failing tests. They carry the complete behavioral specification — what to build is never inferred from conversation history.
 2. The owning leaf design document, named by the `code-mereology-leaf:` header comment in the test files. Once normalized, every file MUST name the identical path, and it MUST resolve inside the repository to a document that exists, carries the leaf role, and is neither a `-perf` record nor a `-plan` file. If the comment is missing, the paths disagree, or any of those checks fails, MUST stop and return to Phase 2 rather than infer an owner from whatever document happens to sit near the code.
-3. The documents pointing at this leaf. Walk the structural graph in reverse and take everything that reaches this node through a structural edge, in two groups: those reaching it through a composition edge are its parents, those reaching it through a dependency edge are its dependents. A navigation link back to a higher topic, a cross-reference, or an external link is neither. A leaf may have several of each — an overview plus more than one topic, and any number of modules relying on it. Keep a set of documents already visited and MUST NOT process one twice.
+3. The documents pointing at this leaf. Run `node <skill-root>/scripts/list-relations.mjs -a <leaf> -f pu <repository-root>` using the loaded skill's root and the actual repository root. The first column is the source document. `parts` identifies parents and `depends` identifies dependents. Use each reason to decide which documents are relevant to this change. Keep a visited set and MUST NOT process a document twice. Follow [Query and Adoption](../SKILL.md#query-and-adoption) on a nonzero result.
 
 The behavioral specification comes from the tests. The document topology comes
 from these lookups. MUST NOT assume the tests alone convey the topology.
@@ -32,7 +32,11 @@ from these lookups. MUST NOT assume the tests alone convey the topology.
 4. Repeat from step 1 until every test in the frozen set passes.
 5. Run the project's existing related tests as well. Everything green before this phase MUST still be green.
 6. Verify the leaf document's interface links still resolve to real symbols, and correct any that moved during refactoring.
-7. Check each parent and each dependent. For a parent, whether the relationships and data flow it draws still match what was actually built; update its Mermaid where they do not. For a dependent, whether the contract it relies on still holds: if it does, change nothing; if only a symbol moved, correct the link. If the contract itself no longer holds, MUST NOT edit the dependent to match — a document rewritten to fit a broken contract hides the breakage. Restore compatibility, or stop and let the user decide whether that dependent needs its own pass through Phase 1. Run the dependents' own tests before treating this step as done. If that update changes the relationships a document describes to the outside, its own parents and dependents may now be stale — repeat this step for that document. Each path is followed on its own, and one stopping does not stop the others. When the implementation only touched the leaf's internals and left its outward boundary alone, the first level of checking is where this ends.
+7. Check each relevant parent and dependent returned by the query.
+    - For a parent, compare the documented relationships and data flow with what was built. Update its Mermaid when they differ.
+    - For a dependent leaf, verify the contract still holds and run its own tests. Correct a moved symbol's link. For a dependent assembly, verify the topic still gets the outcome it describes.
+    - If a contract no longer holds, MUST NOT edit the dependent to fit it. Restore compatibility or stop for the user to decide whether the dependent needs Phase 1.
+    - If a document's outward relationships change, repeat `-a <document> -f pu <repository-root>` and check its parents and dependents. Apply the same failure rules and visited set. Follow each path independently.
 
 ## Rules
 

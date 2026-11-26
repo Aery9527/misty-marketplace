@@ -1,5 +1,9 @@
 # Session Transfer
 
+- `parts`:
+- `depends`:
+- `tags`:
+
 ## 快速導覽
 
 - [責任與邊界](#責任與邊界)

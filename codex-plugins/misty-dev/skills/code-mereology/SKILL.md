@@ -35,7 +35,7 @@ future work, not another specification source.
 
 Documentation descends through two layers: a topic layer describing the assembled whole, and a module layer describing the components it is assembled from.
 
-- `bd-<topic-name>.md` — the assembly document, living in the `docs/` at a scope root — the repository root, or a submodule root in a monorepo. Its subject is what the assembled whole does: a business requirement, an architectural account, an end-to-end data flow. Its Mermaid diagram MUST show structural roles and the rules governing their relationships. A separate Markdown link list MUST identify the concrete nodes one level below it in the document graph. See the [assembly writing rules](references/phase1-design.md#writing-rules--assembly-document). It carries no line limit, and MUST NOT sink into behavior a design document below it already owns.
+- `bd-<topic-name>.md` — the assembly document, living in the `docs/` at a scope root — the repository root, or a submodule root in a monorepo. Its subject is what the assembled whole does: a business requirement, an architectural account, an end-to-end data flow. Its Mermaid diagram MUST show structural roles and the rules governing their relationships. Its header `parts` MUST identify the concrete nodes one level below it. See the [assembly writing rules](references/phase1-design.md#writing-rules--assembly-document). It carries no line limit, and MUST NOT sink into behavior a design document below it already owns.
 - `sd-<feature-name>.md` — the design document. Its subject is one module — a component the assembly is built from. MUST live in the folder that holds the corresponding code, and MUST NOT be collected under `docs/`. `<feature-name>` MUST NOT end in `-perf` or `-plan`, which separates a design document from the temporary records beside it.
 - `sd-<feature-name>-plan.md` — a temporary deferred-change plan beside the existing `sd-<feature-name>.md`. It describes work expected to happen later, is not a specification or graph node, and MAY remain unlinked from every other document. Discovery comes from the plan search, not graph traversal. It carries no line limit, because that limit measures the cognitive load of a design and a plan is deferred intent, not a design.
 - `sd-<feature-name>-perf.md` — the performance record Phase 4 writes beside the code it measured. It records what was measured once, not how the system is put together, so it is not part of the graph below and no phase walks into it. It carries no line limit, because that limit measures the cognitive load of a design and this is a record of what was measured.
@@ -46,28 +46,52 @@ Inside the module layer, `sd-*.md` may itself form a tree, and each node carries
 - Overview role — describes an abstract concept and links to its sub-modules' design documents. MUST NOT be the input of Phase 2.
 - Leaf role — describes one module's own behavior and links to the target code. Only a leaf is a valid input of Phase 2.
 
-A module that is already implemented and has no design document MAY be entered as a partial leaf when something new depends on it: it describes only the capability being depended on and leaves the rest of that module undescribed, so the dependency has a real document to link to without the whole module having to be documented first. Partial is a property of a leaf, not a third role. It MUST carry the `code-mereology-partial` marker listing what it covers, and MUST NOT be the input of Phase 2 for any behavior that marker still excludes. It grows one capability at a time, as each is depended on or changed, and the marker comes off once the last one is described.
+A module that is already implemented and has no design document MAY enter as a partial leaf when something new depends on it. It describes only the capabilities needed so far. Partial is a property of a leaf. It MUST carry the `code-mereology-partial` marker listing covered capabilities. Phase 2 MUST NOT use it for an excluded capability. When removing the marker or promoting the document to overview, connect it to an appropriate assembly along `parts` in the same Phase 1. If no appropriate assembly exists, confirm a new one scoped to the conversion with the user. See [Partial Leaf](references/phase1-design.md#partial-leaf).
 
-The two layers form one structural graph carrying two kinds of edge.
+### Document Relationships
 
-A composition edge points downward and says what a node is made of. There are four:
+- `parts` identifies what makes up a document's subject.
+    - A repository-root assembly for a cross-submodule topic links to the participating submodule assemblies. It reaches their modules through those assemblies. A submodule assembly MUST keep responsibility within its own scope.
+    - An assembly links to participating module documents in its own scope. An overview links to its child module documents.
+    - A leaf keeps interface links to its code in the body. Those links stay outside the document graph.
+- `depends` identifies what the subject needs from elsewhere.
+    - A leaf may depend on another leaf across scopes. Partial leaves can receive dependencies and MUST keep their own `parts` and `depends` empty. A module document with `parts` MUST NOT declare or receive a dependency.
+    - Assembly dependencies express outcomes delivered by another topic. Root assemblies may depend on other root assemblies. Submodule assemblies may depend on other submodule assemblies across directories. MUST NOT join root and submodule assemblies with `depends`.
+- Each ordinary `sd-*.md` MUST be reachable along `parts` from an assembly. Each partial leaf MUST have an incoming `parts` or `depends` from another document. Planned edges do not establish reachability. A `parts` cycle is an error. The user decides whether to keep a dependency cycle in Phase 1.
+- Phase 1 verifies document roles and assembly abstraction levels. The script verifies file kinds at both ends of a dependency and rejects dependencies involving module documents with `parts`.
 
-- a root `bd-*.md` links to each submodule `bd-*.md` taking part in its topic
-- a `bd-*.md` links to every `sd-*.md` in its own scope that takes part
-- an overview `sd-*.md` links to its child `sd-*.md`
-- a leaf `sd-*.md` links to the target code
+### Header and Tags
 
-A dependency edge runs sideways and says what a module needs from elsewhere:
+- Start with a `# ` heading, optionally after frontmatter and blank lines. Before the first `## ` heading or end of file, include only blank lines, an optional partial marker immediately beneath H1, and the header. The header MUST contain `parts`, `depends`, and `tags` exactly once in that order. Leave unused values empty.
+- Each `parts` or `depends` item MUST contain one Markdown inline link and a one-line reason after `: `, without tabs. Describe the target's role for `parts` or the capability or outcome needed for `depends`. For a missing planned document, put `(planned)` between the link and the colon. Remove it when the file exists.
+- A relation link MUST be on one line and have no title. Its label MUST NOT contain square brackets; its destination MUST NOT contain whitespace or parentheses.
+- Link labels MUST be unique within the header. Declare each source/kind/target relationship once. Use exact-case, forward-slash document paths relative to the source. Targets MUST stay within the scan. MUST NOT use absolute paths, query strings, or fragments.
+- Links to another design or assembly document in the repository MUST use its file path in the header. MUST NOT link to that file or one of its fragments from the body. In the body, mention the document as `*label*` using the exact link label. Reserve italics for these mentions and use bold for other emphasis. MUST NOT use underscore emphasis or combine a label with bold. Code links, local headings, external links, and `-plan` or `-perf` links may stay in the body.
+- Write declared tags as comma-separated inline code on the `tags` line. A document inherits its ancestors' declared tags through `parts` and takes the union across parents. Declare each tag at the highest applicable node. MUST NOT redeclare inherited tags. `depends` and planned edges do not carry tags.
+- Use one `docs/code-mereology.json` at the repository root, including in a monorepo. The optional `tags` object maps names to descriptions. Names use one to three lowercase alphanumeric segments joined by hyphens. Every declared tag MUST be in the table, and each listed tag MUST be declared by at least one scanned document. The optional `exclude` array lists existing directories relative to the root, using exact case and forward slashes. The script skips each directory and its subtree. An absent config supplies an empty table and exclusion list.
+- Use only `tags` and `exclude` as configuration keys. An exclusion MUST NOT contain `..` or traverse a directory link. The scan also skips version-control directories, `.worktree`, and directory links.
 
-- any `sd-*.md` links to each `sd-*.md` whose capability it relies on
+```text
+# Topic
 
-Depending on a module is not composing with it. A module that links to what it depends on does not own that module and does not become an overview because of it.
+- `parts`:
+    - [Module](../module/sd-module.md): Delivers the topic's module capability
+- `depends`:
+- `tags`: `backend`
+```
 
-Phase 3 walks this graph in reverse from the leaf it implemented, so every structural edge MUST be a real Markdown link rather than an implied relationship. A `-plan` file is outside this graph and MUST NOT be included in that walk.
+### Query and Adoption
 
-A navigation link pointing back up — such as a submodule document offering a way back to the root topic — is not a structural edge. MUST NOT treat one as a parent relationship; doing so turns the reverse walk into a cycle.
+```text
+node <skill-root>/scripts/list-relations.mjs [-a <document> [-f <relations>] [-d <depth>]] [-t <tag>] <repository-root>
+```
 
-A monorepo MUST nest the same model: the root `docs/` holds the `bd-*.md` describing how submodules assemble — one abstraction level higher — while each submodule's `bd-*.md` describes its own internals. A submodule document MUST NOT restate root-level assembly ownership as its own, but MAY carry a navigation link back to the root topic.
+- Resolve the script from the loaded skill directory. Explicitly pass the full repository's root for workflow queries. Resolve `-a` document paths from the current directory. `-f` combines `p` parents, `c` children, `d` dependencies, and `u` dependents. The default is `pcdu`. `-d` takes a positive depth, defaults to `1`, and accepts `a` for unlimited depth.
+- `-t` lists candidate documents by effective tag. Use `-a` on a candidate to see its relations. With neither option, the script lists all declared relations and tags. MUST NOT combine `-a` and `-t`.
+- Output is TSV. Edge rows contain source, `parts` or `depends`, target, reason, and optional `planned`. Reverse queries retain the original source and target. Tag rows contain document, `tag`, name, and optional `inherited`.
+- The script validates all documents in the scan, including when a query is given. File or configuration errors return `1`. Invalid arguments return `2`. A successful validation returns `0`.
+- Adopt this workflow only after [list-relations.mjs](scripts/list-relations.mjs) passes a no-option check against the actual repository root. If headers are missing, stop and report the files for the user's migration decision. Retry after migration. Generated copies that duplicate sources MUST be excluded.
+- Every impact query requires exit `0` before treating stdout as the complete result. On nonzero, use stdout for diagnostics only. Fix errors caused by the current edits and retry. Stop and report errors outside the task and pre-existing errors found outside a phase. Within Phase 1, fix in-scope errors through the normal gates. In Phase 3, return pre-existing graph errors in scope to Phase 1. The Phase 3 rule for correcting an existing partial leaf's contract still applies.
 
 ## Deferred Change Plans
 
@@ -121,6 +145,6 @@ node <skill-root>/scripts/list-plans.mjs <repository-root>
 Not every code change arrives through a phase. When one does not, the documents
 still MUST NOT be left describing something the code no longer does.
 
-- Before changing existing code, look for an `sd-*.md` in its folder. Where the change reaches past that module, look at the documents linking to it as well.
+- Before changing existing code, look for an `sd-*.md` in its folder. Where the change reaches past the module, run `-a <document> -f pu <repository-root>` and use each relation's reason to select affected documents. Follow [Query and Adoption](#query-and-adoption) on failure.
 - After the change, check each one found against what the code now does, and correct every statement that has stopped being true.
 - Where the change moved the module boundary or altered behavior a caller can observe, correcting the prose is not enough — that is a design change, so return to Phase 1 rather than quietly reshaping the document to fit what was just written.

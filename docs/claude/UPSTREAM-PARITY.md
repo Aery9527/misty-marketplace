@@ -172,6 +172,8 @@ repository requires every source file to live under `skills/`.
 root and excludes the overlay from the skill copy, the same way it excludes
 `*_ch.md`.
 
+- The overlay's [bridge runtime design](../../skills/claude/codex-plugin/docs/bd-bridge-runtime.md) and its module documents declare relationships in their source headers. Sync carries those headers to the generated package. The repository's [code-mereology configuration](../code-mereology.json) excludes that package tree from the document scan so each source relationship is counted once.
+
 [Back to top](#quick-navigation)
 
 ---
