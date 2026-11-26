@@ -122,7 +122,7 @@
 - tag 不沿依賴邊繼承。`depends` 表示需要對方的能力，不表示屬於對方的主題。
 - 一份文件的有效 tag 是「自己宣告的 tag」加上「所有上層的有效 tag」。
 - 一份文件可以有多個上層：現行規則允許多份 `bd-*.md` 以 `parts` 連到同一份 `sd-*.md`，因為一個模組可以參與多個主題。有多個上層時，繼承的 tag 取聯集。
-    - 例：`sd-table-rows.md` 同時被宣告 `backend` 的架構主題與宣告 `policy` 的業務主題連到時，它的有效 tag 包含 `backend` 與 `policy`，兩者都不得在它自己的 `tags` 重複宣告。
+    - 例：`sd-table-rows.md` 同時被宣告 `backend` 的架構主題與宣告 `orders` 的業務主題連到時，它的有效 tag 包含 `backend` 與 `orders`，兩者都不得在它自己的 `tags` 重複宣告。
 - 文件嚴禁宣告它已經繼承的 tag。
     - 原因：同一個事實只寫在一處。重複宣告的 tag 在上層改掉後仍會留在下層，查詢結果就不再可信。
 - tag 必須宣告在它適用範圍的最上層文件。某個 tag 適用於一份文件的所有下層時，只在該文件宣告一次。
@@ -385,7 +385,7 @@ service/table/sd-table.md	tag	persistence
 - 腳本不檢查角色規則，例如 overview 不得有 `depends`。
 - 不改動既有的 `bd-*.md` 與 `sd-*.md`；它們在執行腳本時會被回報為缺少區塊，需另行補上。已知的既有文件：
     - 本 repository 的 `skills/claude/codex-plugin/` 下有 `docs/bd-bridge-runtime.md`、`sd-broker-session-lifecycle.md`、`sd-session-transfer.md`。修改前必須先讀 `docs/claude/UPSTREAM-PARITY.md`。
-    - 其他使用此 skill 的專案，例如 `fgl-developer-portal`。
+    - 其他使用此 skill 的專案。
 
 [回到目錄](#目錄)
 
