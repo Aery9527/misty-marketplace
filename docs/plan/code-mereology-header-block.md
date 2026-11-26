@@ -11,6 +11,7 @@
 - [區塊格式](#區塊格式)
 - [tag 繼承](#tag-繼承)
 - [模型上的改變](#模型上的改變)
+- [文件鏈的完整性](#文件鏈的完整性)
 - [腳本 list-relations.mjs](#腳本-list-relationsmjs)
 - [agent 的使用時機](#agent-的使用時機)
 - [不在範圍](#不在範圍)
@@ -19,7 +20,7 @@
 
 ## 目標
 
-- agent 處理一件事時，能用更少、更精準的資訊，連結到所有與它有關聯的文件。
+- agent 可以透過腳本用更少但精準的資訊來連結到所有與它有關聯的文件。
 - 驗收條件：
     - agent 從一份文件或一個 tag 出發，一次腳本呼叫就取得相關文件的路徑與關係型別。
     - agent 不必為了找出關聯而讀取無關文件的內容。
@@ -48,13 +49,15 @@
     - 原因：關係仍是可點擊的 Markdown link，`(planned)` 標記與 `list-planned.mjs` 不必修改；Node.js 標準函式庫也沒有 YAML 解析器。
 - 關係分成組成（`parts`）與依賴（`depends`）兩種。
     - 原因：邊的型別是腳本無法從內文推得的資訊；分開後腳本可直接算出每份文件的上層與依賴者。
-- 總 tag 表是 repository 根目錄的 `docs/tags.json`，格式為 `{"tag1": "說明", "tag2": "說明"}`；monorepo 也只有這一份。
+- 總 tag 表放在 repository 根目錄的設定檔 `docs/code-mereology.json`，位於 `tags` 鍵之下，格式為 `{"tags": {"tag1": "說明", "tag2": "說明"}}`；monorepo 也只有這一份。
+    - 檔名取自 skill 名稱，tag 內縮一層，讓未來的其他設定能以新的頂層鍵加入同一個檔案。
+    - 總 tag 表與文件的 `tags` 必須雙向一致：文件用到的 tag 必須在表中，表中的每個 tag 必須至少被一份文件宣告；由腳本驗證。
 - tag 具有繼承性：下層文件具有上層文件的 tag，且嚴禁重複宣告；由腳本驗證。
     - 繼承沿每一條 `parts` 邊往下傳，不沿 `depends` 邊。
     - 一份文件有多個上層時，繼承的 tag 取聯集。
 - 腳本的查詢提供選項，讓 agent 自行選擇追查的深度與廣度。
-- `code-mereology` 的文件沒有語言版本之分：每份 `bd-*.md` 與 `sd-*.md` 只有一份，沒有 `_ch` 這類翻譯對應檔。
-    - 腳本因此不對任何檔名後綴做特殊處理；檔名符合 `bd-*.md` 或 `sd-*.md` 的每個檔案都是一份獨立文件。
+- 腳本檢查文件鏈是否斷裂，找出沒有被鏈連到的文件；定義見[文件鏈的完整性](#文件鏈的完整性)。
+    - `depends` 的循環不檢查。現行規則允許使用者明確決定保留依賴循環，腳本不能把它當成錯誤。
 
 [回到目錄](#目錄)
 
@@ -77,7 +80,7 @@
     - 原因：腳本才能分辨「沒有」與「漏寫」。
 - `parts` 與 `depends` 的值是 inline link，形式與現行 planned link 的規定相同：單行、無 title、label 無方括號、目的地無空白或括號。
 - 目標尚未存在時，在連結後標 `(planned)`。
-- `tags` 的值是 inline code，每個都必須是 `docs/tags.json` 的鍵，大小寫須相同。
+- `tags` 的值是 inline code，每個都必須是 `docs/code-mereology.json` 中 `tags` 的鍵，大小寫須相同。
 - `tags` 只寫這份文件自己宣告的 tag，嚴禁寫入已繼承的 tag；見 [tag 繼承](#tag-繼承)。
 - 項目之間以 `、` 或 `,` 分隔。
 - 只列 `bd-*.md` 與 `sd-*.md`；不列程式碼、`-plan`、`-perf`，也不列指回上層的導航連結。
@@ -142,6 +145,42 @@
 
 ---
 
+## 文件鏈的完整性
+
+文件鏈有三種斷裂方式，腳本每次執行都檢查整個 repository。
+
+| 斷裂方式 | 判定條件 |
+|---|---|
+| 邊斷了 | 連結沒有 `(planned)`，但目標不存在 |
+| 組成成環 | `parts` 的連結形成循環 |
+| 文件沒被連到 | 依下表，隨文件種類而不同 |
+
+「文件沒被連到」的判定：
+
+| 文件 | 判定為斷裂的條件 | 原因 |
+|---|---|---|
+| 一般的 `sd-*.md` | 從任何一份 `bd-*.md` 沿 `parts` 都走不到它 | 每個模組必須屬於至少一個主題 |
+| partial leaf | 沒有任何文件以 `parts` 或 `depends` 連到它 | 現行規則規定，該 scope 沒有 `bd-*.md` 時嚴禁為它新建，所以它可以只被依賴 |
+| `bd-*.md` | 不檢查 | 它是鏈的起點；submodule 的 `bd-*.md` 只在主題跨 submodule 時才被 root 連到 |
+
+- 走訪只沿目標已存在的邊；帶 `(planned)` 的邊不算連到。
+- 腳本以標題與第一個 `## ` 標題之間、開頭為 `` > `code-mereology-partial`: `` 的行認出 partial leaf。
+- `-plan` 與 `-perf` 檔刻意不在圖裡，不列入檢查。
+- 腳本不檢查 leaf 到程式碼這一段：區塊只列 `.md`，程式碼連結在內文，腳本不解析內文。
+
+範例，以[輸出範例](#輸出範例)的檔案為基礎：
+
+| 改動 | 結果 |
+|---|---|
+| 從 `sd-table.md` 的 `parts` 移除 `sd-table-rows.md` | `sd-table-rows.md` 斷裂：沒有任何 `bd-*.md` 走得到它 |
+| 同上，但 `sd-query.md` 以 `depends` 連到 `sd-table-rows.md` | 仍然斷裂：`depends` 不算歸屬於主題 |
+| 同上，且 `sd-table-rows.md` 帶有 `code-mereology-partial` 標記 | 不斷裂：partial leaf 被依賴即可 |
+| 刪除 `bd-backend-layers.md` | 其餘四份 `sd-*.md` 全部斷裂 |
+
+[回到目錄](#目錄)
+
+---
+
 ## 腳本 list-relations.mjs
 
 ### 用法
@@ -198,7 +237,7 @@ node <skill-root>/scripts/list-relations.mjs [--about <文件> [--follow <關係
 
 | 檔案 | 內容 |
 |---|---|
-| `docs/tags.json` | `{"backend": "後端服務層", "persistence": "資料存取", "search": "查詢功能"}` |
+| `docs/code-mereology.json` | `{"tags": {"backend": "後端服務層", "persistence": "資料存取", "search": "查詢功能"}}` |
 | `docs/bd-backend-layers.md` | `parts` 連到 `sd-table.md` 與 `sd-query.md`；`tags` 為 `backend` |
 | `service/table/sd-table.md` | `parts` 連到 `sd-table-rows.md` 與 `sd-table-schema.md`；`tags` 為 `persistence` |
 | `service/table/rows/sd-table-rows.md` | `depends` 連到 `sd-table-schema.md`，以及尚未存在並標了 `(planned)` 的 `../cache/sd-row-cache.md`；`tags` 留空 |
@@ -263,15 +302,21 @@ service/table/sd-table.md	tag	persistence
 | 連結沒有 `(planned)`，但目標不存在 | 錯誤 |
 | 連結有 `(planned)`，但目標已存在 | 錯誤 |
 | 目標不是 `bd-*.md` 或 `sd-*.md`，或是 `-plan`、`-perf` 檔 | 錯誤 |
-| tag 不在 `docs/tags.json` 中，或文件用了 tag 但該檔不存在 | 錯誤 |
+| tag 不在 `docs/code-mereology.json` 的 `tags` 中；該檔不存在或沒有 `tags` 鍵時，視為沒有任何 tag | 錯誤 |
 | 文件宣告了它已繼承的 tag | 錯誤；訊息指出 tag 名稱與宣告它的上層文件 |
 | `parts` 的連結形成循環 | 錯誤；繼承在循環上沒有定義 |
-| `docs/tags.json` 不是「字串對字串」的 JSON 物件 | 錯誤 |
-| `docs/tags.json` 有文件沒用到的 tag | 不算錯誤，允許預先定義 |
+| 一般的 `sd-*.md` 無法從任何 `bd-*.md` 沿 `parts` 走到 | 錯誤 |
+| partial leaf 沒有被任何文件以 `parts` 或 `depends` 連到 | 錯誤 |
+| `depends` 的連結形成循環 | 不算錯誤，不檢查 |
+| `docs/code-mereology.json` 不是 JSON 物件，或有 `tags` 以外的頂層鍵 | 錯誤 |
+| `docs/code-mereology.json` 的 `tags` 不是「字串對字串」的 JSON 物件 | 錯誤 |
+| `docs/code-mereology.json` 的 tag 沒有被任何文件在 `tags` 宣告 | 錯誤；繼承而來的不算宣告 |
 | 檔案不是 UTF-8 | 錯誤，其他檔案照常處理 |
 
 - 例：`sd-table-rows.md` 的 `tags` 寫了 `backend` 時，stderr 為
   `ERROR service/table/rows/sd-table-rows.md:5: tag "backend" is inherited from docs/bd-backend-layers.md`。
+- 例：`sd-query.md` 的 `tags` 改為留空後，沒有文件宣告 `search`，stderr 為
+  `ERROR docs/code-mereology.json: tag "search" is not declared by any document`。
 
 參數的錯誤：
 
@@ -283,7 +328,7 @@ service/table/sd-table.md	tag	persistence
 | `--follow` 含有四種關係以外的值 | 錯誤 |
 | `--depth` 不是正整數也不是 `all` | 錯誤 |
 | `--about` 的文件不在 root 內，或不是 `bd-*.md`、`sd-*.md` | 錯誤 |
-| `--tag` 的值不在 `docs/tags.json` 中 | 錯誤 |
+| `--tag` 的值不在 `docs/code-mereology.json` 的 `tags` 中 | 錯誤 |
 
 [回到目錄](#目錄)
 
@@ -297,7 +342,7 @@ service/table/sd-table.md	tag	persistence
 |---|---|---|
 | 階段之外修改既有程式碼前，已找到程式碼旁的 `sd-*.md` | `--about <該文件> --follow parents,dependents` | 指向它、修改後必須對照的文件 |
 | Phase 1 修改既有設計文件前 | `--about <該文件>` | 直接相連的文件，用來判斷變更的影響 |
-| Phase 1 需要找出與某個主題有關的文件 | 先讀 `docs/tags.json` 選出 tag，再用 `--tag <tag>` | 有效 tag 包含它的文件 |
+| Phase 1 需要找出與某個主題有關的文件 | 先讀 `docs/code-mereology.json` 的 `tags` 選出 tag，再用 `--tag <tag>` | 有效 tag 包含它的文件 |
 | Phase 3 冷載入，找出 leaf 的上層與依賴者 | `--about <leaf> --follow parents,dependents` | `parts` 指向它的是上層，`depends` 指向它的是依賴者 |
 | Phase 3 檢查後，某份上層或依賴者改變了它對外描述的關係 | 對那份文件再執行同一個查詢 | 下一層要檢查的文件 |
 
@@ -334,10 +379,11 @@ service/table/sd-table.md	tag	persistence
 - 新增 `skills/code-mereology/scripts/list-relations.mjs`。
     - 以 `find-files.mjs` 找出設計與組裝文件，以 `read-lines.mjs` 的 `readLines` 讀檔。
     - 連結的比對沿用 `list-planned.mjs` 的 `PLANNED` 正規表示式所定義的形式。
-    - 依序處理：解析每份文件的區塊、檢查文件的錯誤、計算繼承的 tag、依查詢選項輸出。
+    - 依序處理：解析每份文件的區塊、檢查文件的錯誤、檢查[文件鏈的完整性](#文件鏈的完整性)、計算繼承的 tag、依查詢選項輸出。
 - 在 `scripts/tests/code-mereology-scripts.test.mjs` 先寫失敗測試，再實作。測試涵蓋：
     - [輸出範例](#輸出範例)的四種呼叫。
     - [tag 繼承](#tag-繼承)的範例，包含多個上層取聯集。
+    - [文件鏈的完整性](#文件鏈的完整性)範例表的每一列。
     - [錯誤處理](#錯誤處理)兩張表的每一列。
 
 ### 階段 2：規則文件
@@ -346,8 +392,8 @@ service/table/sd-table.md	tag	persistence
 
 - `skills/code-mereology/SKILL.md`：
     - 「文件模型」新增區塊的定義與格式，並把結構邊改為由區塊宣告。
-    - 「文件模型」新增 tag 繼承的規則與 `docs/tags.json`。
-    - 「文件模型」新增：每份 `bd-*.md` 與 `sd-*.md` 只有一份，嚴禁建立翻譯對應檔。
+    - 「文件模型」新增 tag 繼承的規則與設定檔 `docs/code-mereology.json`。
+    - 「文件模型」新增[文件鏈的完整性](#文件鏈的完整性)的兩條歸屬規則：一般的 `sd-*.md` 必須能從某份 `bd-*.md` 沿 `parts` 走到；partial leaf 必須被至少一份文件連到。
     - 新增 `list-relations.mjs` 的用法與選項。
     - 「階段之外的程式碼修改」補上[使用時機](#agent-的使用時機)表中對應的查詢。
 - `skills/code-mereology/references/phase1-design.md`：
@@ -356,13 +402,14 @@ service/table/sd-table.md	tag	persistence
     - 「遞迴與 gate」補上：
         - 寫節點時填區塊。
         - tag 宣告在適用範圍的最上層文件，不重複宣告已繼承的 tag。
-        - 新 tag 連同說明加入 `docs/tags.json`，並隨文件一起交給使用者確認。
+        - 新 tag 連同說明加入 `docs/code-mereology.json` 的 `tags`，並隨文件一起交給使用者確認。
+        - 最後一份宣告某個 tag 的文件移除它時，同時從 `docs/code-mereology.json` 的 `tags` 刪除該 tag。
     - 「切分程序」補上：升格時更新 `parts`，並把適用於所有子層的 tag 留在升格後的文件。
     - 補上[使用時機](#agent-的使用時機)表中 Phase 1 的兩個查詢。
     - 「產出物」補上：對 repository 執行 `list-relations.mjs` 沒有錯誤。
 - `skills/code-mereology/references/phase3-tdd.md`：冷載入程序第 3 點與執行流程第 7 點，改為用[使用時機](#agent-的使用時機)表中 Phase 3 的兩個查詢。
 - `skills/code-mereology/CODE-MEREOLOGY.md`：
-    - 檔名規則表加上 `docs/tags.json`。
+    - 檔名規則表加上 `docs/code-mereology.json`。
     - 「值得知道的決策」加兩則：區塊的用意、tag 繼承。
     - 腳本清單加上 `list-relations.mjs`。
 - `phase2-sbe.md` 與 `phase4-benchmark.md` 不需修改。
