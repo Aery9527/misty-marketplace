@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import process from "node:process";
 
 import { isProbablyText } from "./fs.mjs";
 import { formatCommandFailure, runCommand, runCommandChecked } from "./process.mjs";
@@ -7,6 +8,11 @@ import { formatCommandFailure, runCommand, runCommandChecked } from "./process.m
 const MAX_UNTRACKED_BYTES = 24 * 1024;
 const DEFAULT_INLINE_DIFF_MAX_FILES = 2;
 const DEFAULT_INLINE_DIFF_MAX_BYTES = 256 * 1024;
+const TRACKED_DIFF = ["diff", "--binary", "--no-color", "--no-ext-diff", "--submodule=diff"];
+const WORKING_TREE_DIFFS = [
+  { name: "staged.patch", title: "Staged Diff", args: [...TRACKED_DIFF, "--cached"] },
+  { name: "unstaged.patch", title: "Unstaged Diff", args: TRACKED_DIFF }
+];
 
 // Git is directly executable on Windows. Repository-derived arguments must never pass through a shell.
 function git(cwd, args, options = {}) {
@@ -301,12 +307,9 @@ function collectWorkingTreeContext(cwd, state, options = {}) {
 
   let parts;
   if (includeDiff) {
-    const stagedDiff = gitChecked(cwd, ["diff", "--cached", "--binary", "--no-ext-diff", "--submodule=diff"]).stdout;
-    const unstagedDiff = gitChecked(cwd, ["diff", "--binary", "--no-ext-diff", "--submodule=diff"]).stdout;
     parts = [
       formatSection("Git Status", status),
-      formatSection("Staged Diff", stagedDiff),
-      formatSection("Unstaged Diff", unstagedDiff),
+      ...WORKING_TREE_DIFFS.map(({ title, args }) => formatSection(title, gitChecked(cwd, args).stdout)),
       formatSection("Untracked Files", untrackedBody)
     ];
   } else {
@@ -351,7 +354,7 @@ function collectBranchContext(cwd, baseRef, options = {}) {
           formatSection("Diff Stat", diffStat),
           formatSection(
             "Branch Diff",
-            gitChecked(cwd, ["diff", "--binary", "--no-ext-diff", "--submodule=diff", comparison.commitRange]).stdout
+            gitChecked(cwd, [...TRACKED_DIFF, comparison.commitRange]).stdout
           )
         ].join("\n")
       : [
@@ -369,26 +372,61 @@ function collectBranchContext(cwd, baseRef, options = {}) {
   };
 }
 
-// The review session registers no shell, so guidance must not send the reviewer after a
-// git command it cannot run. Without the diff, a tracked change reaches the reviewer as a
-// summary and a file name only, so it has to read those files itself with `Read` and
-// nothing here observes whether it did; an eligible untracked file still arrives with its
-// contents inlined, because it has no committed version to diff against. Either way the
-// reviewer cannot see what the change removed — saying so keeps the findings honest.
-function buildAdversarialCollectionGuidance(options = {}) {
-  if (options.includeDiff !== false) {
-    return "Use the repository context below as primary evidence.";
+function writeReviewPatch(cwd, source, directory) {
+  const patchPath = path.join(directory, source.name);
+  const fd = fs.openSync(patchPath, "wx", 0o600);
+  try {
+    // 直接把 Git 的輸出寫入檔案，避免整份大型差異進入子行程的輸出緩衝區。
+    const result = git(cwd, source.args, { stdio: ["ignore", fd, "pipe"] });
+    if (result.error) {
+      throw result.error;
+    }
+    if (result.status !== 0 || result.signal) {
+      throw new Error(formatCommandFailure(result));
+    }
+    return { path: patchPath, bytes: fs.fstatSync(fd).size };
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
+export function removeReviewPatchFiles(directory) {
+  if (!directory) {
+    return;
+  }
+  try {
+    const entry = fs.lstatSync(directory, { throwIfNoEntry: false });
+    if (!entry) {
+      return;
+    }
+    if (!entry.isDirectory()) {
+      throw new Error("Expected a patch directory.");
+    }
+    for (const name of ["branch.patch", ...WORKING_TREE_DIFFS.map(({ name }) => name)]) {
+      fs.rmSync(path.join(directory, name), { force: true });
+    }
+    fs.rmdirSync(directory);
+  } catch (error) {
+    if (error.code !== "ENOENT") {
+      process.emitWarning(`Could not clean up review patches in ${directory}: ${error.message}`);
+    }
+  }
+}
+
+export async function withReviewPatchFiles(context, directory, review) {
+  if (context.inputMode === "inline-diff") {
+    return review([]);
   }
 
-  return [
-    "The repository context below is a summary, not a diff. For a tracked file it gives you",
-    "the name and a change stat but not the change itself, so read those files to see their",
-    "current contents. An untracked file is included with its contents already, unless the",
-    "section marks it skipped, in which case you do not have it at all. You cannot",
-    "see removed lines or previous versions, and you have no shell, so do not claim a",
-    "finding about what the change deleted or replaced. Say plainly in the summary that this",
-    "review assessed the current state of the changed files rather than the change itself."
-  ].join(" ");
+  fs.mkdirSync(directory, { mode: 0o700 });
+  try {
+    const patches = context.patchSources
+      .map((source) => writeReviewPatch(context.repoRoot, source, directory))
+      .filter((patch) => patch.bytes > 0);
+    return await review(patches);
+  } finally {
+    removeReviewPatchFiles(directory);
+  }
 }
 
 // Names the threshold that withheld the diff, or null when neither was crossed. The byte
@@ -413,6 +451,7 @@ export function collectReviewContext(cwd, target, options = {}) {
   let details;
   let includeDiff;
   let diffBytes;
+  let patchSources;
   let inlineRefusalReason = null;
   // Read once and handed back with the context, so the scope line and the collection that
   // follows it start from the same reading. Neither is a snapshot: the git commands below
@@ -421,12 +460,10 @@ export function collectReviewContext(cwd, target, options = {}) {
 
   if (target.mode === "working-tree") {
     const state = workingTreeState;
+    patchSources = WORKING_TREE_DIFFS;
     diffBytes = measureCombinedGitOutputBytes(
       repoRoot,
-      [
-        ["diff", "--cached", "--binary", "--no-ext-diff", "--submodule=diff"],
-        ["diff", "--binary", "--no-ext-diff", "--submodule=diff"]
-      ],
+      patchSources.map(({ args }) => args),
       maxInlineDiffBytes
     );
     const changedCount = listUniqueFiles(state.staged, state.unstaged, state.untracked).length;
@@ -435,10 +472,12 @@ export function collectReviewContext(cwd, target, options = {}) {
     details = collectWorkingTreeContext(repoRoot, state, { includeDiff });
   } else {
     const comparison = buildBranchComparison(repoRoot, target.baseRef);
+    const args = [...TRACKED_DIFF, comparison.commitRange];
+    patchSources = [{ name: "branch.patch", args }];
     const fileCount = gitChecked(repoRoot, ["diff", "--name-only", comparison.commitRange]).stdout.trim().split("\n").filter(Boolean).length;
     diffBytes = measureGitOutputBytes(
       repoRoot,
-      ["diff", "--binary", "--no-ext-diff", "--submodule=diff", comparison.commitRange],
+      args,
       maxInlineDiffBytes
     );
     inlineRefusalReason = describeInlineRefusal(fileCount, diffBytes, maxInlineFiles, maxInlineDiffBytes);
@@ -454,12 +493,12 @@ export function collectReviewContext(cwd, target, options = {}) {
     workingTreeState,
     fileCount: details.changedFiles.length,
     diffBytes,
-    inputMode: includeDiff ? "inline-diff" : "self-collect",
+    inputMode: includeDiff ? "inline-diff" : "patch-files",
+    patchSources: includeDiff ? [] : patchSources,
     // Only meaningful when the diff was withheld, and then it names the threshold that
     // was actually crossed. Either one can trip alone: several tiny untracked files
     // cross the file count while the diff itself is empty.
     inlineRefusalReason: includeDiff ? null : inlineRefusalReason ?? "the caller asked for a summary",
-    collectionGuidance: buildAdversarialCollectionGuidance({ includeDiff }),
     ...details
   };
 }

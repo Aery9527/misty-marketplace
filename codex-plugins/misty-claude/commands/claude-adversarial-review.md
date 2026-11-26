@@ -71,16 +71,13 @@ constraints live here as instructions rather than as declared metadata.
   what makes them usable — but collection is a sequence of git reads, so a tree
   edited while it runs can leave them describing it in parts. MUST repeat them
   rather than restating the result as covering anything wider.
-- When the `Evidence` line says the tracked diff was not supplied inline, it also
-  names the threshold that withheld it — a file count or a diff size, and either
-  can trip on its own. In that case a tracked change reached Claude as a summary
-  and a file name and it was told to read those files itself, so whether it read
-  any given one is not recorded; eligible
-  untracked files arrived with their contents, and the ones the `Evidence` line
-  names as left out did not arrive at all. Either way it could not see what the
-  change removed. MUST NOT present such a review as a review of the diff. If the
-  `Evidence` line names untracked entries that were left out, MUST pass that on
-  rather than reporting full coverage.
+- If either the file count or the diff size exceeds its inline limit, the
+  bridge supplies any captured tracked diff in temporary patch files. Claude
+  receives access to the job's patch directory for the review turn. Working
+  tree reviews use separate patches for staged and unstaged changes.
+- The `Evidence` line reports how the bridge provided the tracked diff and
+  identifies any untracked entries it left out. For patch files it reports what
+  was available to read. MUST preserve the reviewer's stated coverage limits.
 - The review session registers only `Read`, `Glob` and `Grep`, with no shell and
   no MCP server, so it cannot modify the repository.
 - If the review returns no valid structured output, return the failure as

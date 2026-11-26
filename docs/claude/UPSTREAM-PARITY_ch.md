@@ -372,11 +372,9 @@ protocol 測試不同。
   都走 stdin 的原因。
 - **審查範圍回報** — 上游會標示它解析出的目標。對應物額外印出該目標實際涵蓋的範圍，
   因為 `auto` 會自行在 working tree 與 branch diff 之間選擇，而明確的 `--base` 會悄悄
-  把所有未提交的變更排除在本 bridge 組出的 context 之外。它也會印出 Claude 實際收到的
-  證據：完整的 tracked diff；或在門檻擋下 diff 時（該行會指名是哪一個門檻，因為檔案數與
-  diff 大小各自都可能單獨觸發），tracked 變更只給摘要與一份「請自行讀取」的檔案清單、
-  符合條件的 untracked 檔案則直接內嵌內容，並逐項附上 context 不得不略過的未追蹤項目
-  及其原因。
+  把所有未提交的變更排除在本 bridge 組出的 context 之外。報告也會說明 tracked diff
+  的提供方式。超過任一內嵌門檻時，bridge 會改用暫存 patch 檔。報告列出超過的門檻、
+  寫入 patch 檔的位元組數，以及略過的 untracked 項目與原因。符合條件的 untracked 內容直接內嵌。
   只有在 bridge 自行組 context 的對抗式路徑上，Scope 行才會寫成「已涵蓋」；該路徑的 Scope
   取自蒐集開始時的同一份 working tree 狀態——那是一連串 git 指令依序讀出的，不是快照，
   因此蒐集期間被改動的工作目錄會被分段描述。內建 reviewer 的寫法為何是「已請求」，
@@ -499,13 +497,13 @@ protocol 測試不同。
   因此 bridge 只陳述所請求的範圍，並註明 reviewer 可能涵蓋更多。對抗式路徑不受影響，
   因為該路徑由 bridge 組出 context，確知自己交出了什麼——Scope 行報告的正是這個，而不是
   一棵它分好幾個指令才讀完的工作樹的狀態。
-- **自行蒐集的審查證據** — `prompts/adversarial-review.md`。diff 被擋在 context 之外時，
-  上游要求 reviewer 以唯讀 git 指令自行蒐集 diff。對應物的審查 session 沒有註冊任何
-  shell，因此做不到。tracked 變更改為只以摘要與檔名送達，並要求它自行以 `Read` 讀取那些
-  檔案；runtime 無法觀測它是否真的讀了，因此 evidence 行只寫「已被要求讀取」，不寫
-  「已讀取」。符合條件的 untracked 檔案仍會直接內嵌內容，因為它沒有可供 diff 的已提交
-  版本。無論哪一種，reviewer 都看不到變更刪除了什麼；prompt 因此要求它在 summary 中明說
-  這一點，而不是推測看不到的刪除內容。
+- **以 patch 檔提供審查證據** — `prompts/adversarial-review.md`。上游要求 reviewer
+  用 Git 自行取得超限的 diff。bridge 會把包含刪除行的完整 tracked diff 寫入暫存 patch
+  檔，並讓 reviewer 使用 `Read` 存取該 job 的 patch 目錄。工作區審查會分開保存已暫存與未暫存
+  的 diff。審查回合結束後，或 bridge 在取消與關閉 session 時確認 worker 已退出後，會嘗試清理
+  暫存檔。清理失敗或未觀察到 worker 退出時，patch 可能會保留，例如取消等待逾時或從 bridge
+  外停止。移除 job 紀錄後仍可能留下 patch。證據行回報寫入的位元組數，提示詞則要求 Claude
+  說明未讀取的部分。
 - **執行模式的選擇** — `commands/review.md`、`commands/adversarial-review.md`。兩邊宿主
   都能在前景或背景執行審查。上游額外由 command 內文以 `git` 估算變更規模，再呼叫一次
   `AskUserQuestion` 讓使用者選擇，並在變更不是明顯很小時建議背景。目前沒有觀察到任何

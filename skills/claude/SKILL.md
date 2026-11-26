@@ -63,6 +63,8 @@ work and obtains a final review. Long-running work is tracked as a job.
   restating the result as covering the whole repository. On
   `/claude-adversarial-review` those lines describe what the bridge itself
   collected, read across a sequence of git commands rather than as one snapshot.
+  When either inline limit is exceeded, the bridge supplies any captured tracked
+  diff as temporary patch files. `Evidence` reports what Claude was given to read.
   On `/claude-review` the scope is only what was requested:
   the built-in reviewer sets its own, so MUST NOT tell the user anything was
   excluded from it.

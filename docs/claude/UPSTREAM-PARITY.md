@@ -420,12 +420,12 @@ is a loss of function.
   counterpart additionally prints the scope that target actually covers, because
   `auto` silently chooses between the working tree and a branch diff, and an
   explicit `--base` silently excludes every uncommitted change from the context
-  this bridge assembles. It also prints what evidence Claude actually received:
-  the tracked diff in full, or — when a threshold withheld it, named in the line
-  because a file count and a diff size can each trip alone — a summary and a file
-  list it was told to read from for tracked changes, with inlined contents for
-  eligible untracked ones, plus every untracked entry the context had to leave
-  out and why. The scope line is phrased as what was covered only on the
+  this bridge assembles. It also reports how the tracked diff was supplied:
+  inline or in temporary patch files if either inline threshold was exceeded.
+  The report identifies the threshold, reports the bytes written to any patch
+  files, and lists
+  omitted untracked entries and their reasons. Eligible untracked contents
+  remain inline. The scope line is phrased as what was covered only on the
   adversarial path, where the bridge builds the context and reads the scope from
   the same working-tree state that collection started with — a sequence of git
   commands, not a snapshot, so a tree edited mid-collection is described in
@@ -603,16 +603,17 @@ on a known limitation.
   more. The adversarial path is unaffected, because there the bridge assembles
   the context and so knows what it handed over — which is what the scope line
   reports, rather than the state of a tree it read across several commands.
-- **Self-collected review evidence** — `prompts/adversarial-review.md`. When the
-  diff is withheld from the context, upstream tells the reviewer to gather it
-  itself with read-only git commands. The counterpart's review session registers
-  no shell, so it cannot. A tracked change reaches it as a summary and a file
-  name instead, and it is told to read those files with `Read`; whether it did so
-  is not observable from the runtime, which is why the evidence line says it was
-  instructed to read rather than that it read. An eligible untracked file still
-  arrives with its contents inlined, because it has no committed version to diff
-  against. Either way the reviewer cannot see what the change removed, and the
-  prompt requires it to say so in its summary rather than infer deletions.
+- **Patch files for review evidence** — `prompts/adversarial-review.md`.
+  Upstream asks the reviewer to gather oversized diffs with Git. The bridge
+  writes the complete tracked diff, including removed lines, to temporary patch
+  files and grants access to that job's patch directory for `Read`. Working
+  tree reviews preserve staged and unstaged diffs separately. The bridge
+  attempts cleanup when the turn ends or when bridge cancellation or session
+  shutdown observes the worker exit. Patches can remain if cleanup fails or
+  worker exit goes unobserved, including after a cancellation wait times out or
+  a stop outside the bridge. Patches can outlast the job record. The evidence
+  line reports the bytes written, and the prompt asks Claude to disclose unread
+  portions.
 - **Choosing the execution mode** — `commands/review.md`,
   `commands/adversarial-review.md`. Both hosts run a review in the foreground or
   in the background. Upstream additionally has its command body estimate the

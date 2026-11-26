@@ -23,7 +23,9 @@ import {
   collectReviewContext,
   describeReviewScope,
   ensureGitRepository,
-  resolveReviewTarget
+  removeReviewPatchFiles,
+  resolveReviewTarget,
+  withReviewPatchFiles
 } from "./lib/git.mjs";
 import {
   buildSingleJobSnapshot,
@@ -32,7 +34,7 @@ import {
   resolveCancelableJob,
   resolveResultJob
 } from "./lib/job-control.mjs";
-import { terminateProcessTree } from "./lib/process.mjs";
+import { terminateProcessTree, waitForProcessExit } from "./lib/process.mjs";
 import { interpolateTemplate, loadPromptTemplate } from "./lib/prompts.mjs";
 import {
   renderCancelReport,
@@ -52,6 +54,7 @@ import {
   getConfig,
   isActiveJobStatus,
   resolveJobFile,
+  resolveReviewPatchDirectory,
   setConfig,
   writeJobFile
 } from "./lib/state.mjs";
@@ -238,12 +241,24 @@ function ensureClaudeAvailable(cwd) {
   }
 }
 
-function buildAdversarialReviewPrompt(context, focusText) {
+function buildAdversarialReviewPrompt(context, focusText, patches) {
+  let guidance = "Use the repository context below as primary evidence.";
+  if (context.inputMode === "patch-files") {
+    guidance = patches.length === 0
+      ? "The bridge captured no tracked diff content. Review the eligible untracked files included below."
+      : [
+          `Tracked patch files (JSON): ${JSON.stringify(patches.map((patch) => patch.path))}`,
+          "Use Read on each patch as primary evidence before reaching a verdict. Read successive ranges if needed.",
+          "The patches include removed lines. For working-tree reviews, read staged.patch before unstaged.patch when both are present.",
+          "Use the repository context below for the summary, file list and eligible untracked contents.",
+          "If any patch or portion cannot be read, state the missing coverage in the summary and limit your conclusions to the evidence you read."
+        ].join("\n");
+  }
   return interpolateTemplate(loadPromptTemplate(ROOT_DIR, "adversarial-review"), {
     REVIEW_KIND: "Adversarial Review",
     TARGET_LABEL: context.target.label,
     USER_FOCUS: focusText || "No extra focus provided.",
-    REVIEW_COLLECTION_GUIDANCE: context.collectionGuidance,
+    REVIEW_COLLECTION_GUIDANCE: guidance,
     REVIEW_INPUT: context.content
   });
 }
@@ -354,13 +369,22 @@ async function runNativeReview(request, onProgress, sessionLifecycle) {
 // What the reviewer was actually given, stated so a reader can weigh the findings. The
 // inline-diff threshold measures the tracked diff alone, so an untracked file left out of
 // the context has to be named here or "the full diff" would be a false claim.
-function describeReviewEvidence(context) {
+function describeReviewEvidence(context, patches, diffBytes) {
   const skipped = context.skippedUntracked ?? [];
-  const parts = [
-    context.inputMode === "inline-diff"
-      ? `the tracked diff was supplied in full (${context.trackedFileCount} file(s), ${context.diffBytes} bytes)`
-      : `the tracked diff was not supplied inline because ${context.inlineRefusalReason}; Claude received a summary and a file list for ${context.trackedFileCount} tracked file(s), not the diff, and was told to read those files itself, so whether it read any given one is not tracked here, and either way it could not see what the change removed`
-  ];
+  const parts = [];
+  if (context.inputMode === "inline-diff") {
+    parts.push(`the tracked diff was supplied in full (${context.trackedFileCount} file(s), ${diffBytes} bytes)`);
+  } else {
+    parts.push(`the tracked diff was not supplied inline because ${context.inlineRefusalReason}`);
+    if (patches.length === 0) {
+      parts.push("the bridge captured no tracked diff content");
+    } else {
+      parts.push(
+        `the bridge wrote ${diffBytes} bytes of tracked diff to ${patches.length} temporary patch file(s) and instructed Claude to read them`,
+        "the bridge does not verify which portions Claude read"
+      );
+    }
+  }
 
   if (context.untrackedIncludedCount > 0) {
     parts.push(`${context.untrackedIncludedCount} untracked file(s) were included with their contents`);
@@ -374,21 +398,29 @@ function describeReviewEvidence(context) {
   return parts.join(". ");
 }
 
-async function runAdversarialReview(request, onProgress, sessionLifecycle) {
+async function runAdversarialReview(request, onProgress, sessionLifecycle, job) {
   // The scope line is built from the same reading the collection started with, so the two
   // lines agree about where the review began. Collection is a sequence of git reads, though,
   // and a tree edited while they run cannot be described as one moment by either line.
   const context = collectReviewContext(request.cwd, request.target);
   const scopeNote = describeReviewScope(request.cwd, request.target, { state: context.workingTreeState });
-  const result = await runClaudeOnce(context.repoRoot, buildAdversarialReviewPrompt(context, request.focusText), {
-    ...READ_ONLY_SESSION,
-    model: request.model,
-    jsonSchema: readJsonFile(REVIEW_SCHEMA_PATH),
-    sessionLifecycle,
-    onEvent: createStreamProgressListener(onProgress)
+  const patchDirectory = resolveReviewPatchDirectory(job.workspaceRoot, job.id);
+  const { result, patches } = await withReviewPatchFiles(context, patchDirectory, async (patches) => {
+    const result = await runClaudeOnce(context.repoRoot, buildAdversarialReviewPrompt(context, request.focusText, patches), {
+      ...READ_ONLY_SESSION,
+      additionalDirectory: patches.length > 0 ? patchDirectory : undefined,
+      model: request.model,
+      jsonSchema: readJsonFile(REVIEW_SCHEMA_PATH),
+      sessionLifecycle,
+      onEvent: createStreamProgressListener(onProgress)
+    });
+    return { result, patches };
   });
   const parsed = parseReviewOutput(result);
-  const evidenceNote = describeReviewEvidence(context);
+  const diffBytes = context.inputMode === "inline-diff"
+    ? context.diffBytes
+    : patches.reduce((total, patch) => total + patch.bytes, 0);
+  const evidenceNote = describeReviewEvidence(context, patches, diffBytes);
 
   const meta = {
     reviewLabel: "Adversarial Review",
@@ -413,7 +445,7 @@ async function runAdversarialReview(request, onProgress, sessionLifecycle) {
         summary: context.summary,
         inputMode: context.inputMode,
         fileCount: context.fileCount,
-        diffBytes: context.diffBytes
+        diffBytes
       },
       claude: { subtype: result.subtype, isError: result.isError, stdout: result.text, stderr: result.stderr },
       result: parsed.parsed,
@@ -483,7 +515,7 @@ function executeJob(request, onProgress, options = {}) {
     return runRescue(request, onProgress, options.sessionLifecycle);
   }
   return request.kind === "adversarial-review"
-    ? runAdversarialReview(request, onProgress, options.sessionLifecycle)
+    ? runAdversarialReview(request, onProgress, options.sessionLifecycle, options.job)
     : runNativeReview(request, onProgress, options.sessionLifecycle);
 }
 
@@ -841,7 +873,7 @@ async function handleReviewCommand(kind, argv) {
   const { logFile, progress } = createTrackedProgress(job, { stderr: !options.json });
   const execution = await runTrackedJob(
     { ...job, logFile },
-    () => executeJob(request, progress, { sessionLifecycle: createJobSessionLifecycle({ ...job, logFile }, progress) }),
+    () => executeJob(request, progress, { job, sessionLifecycle: createJobSessionLifecycle({ ...job, logFile }, progress) }),
     { logFile }
   );
   outputResult(options.json ? execution.payload : execution.rendered, Boolean(options.json));
@@ -906,7 +938,7 @@ async function handleRunJob(argv) {
 
   await runTrackedJob(
     { ...job, logFile },
-    () => executeJob(job.request, progress, { sessionLifecycle: createJobSessionLifecycle({ ...job, logFile }, progress) }),
+    () => executeJob(job.request, progress, { job, sessionLifecycle: createJobSessionLifecycle({ ...job, logFile }, progress) }),
     { logFile }
   );
 }
@@ -1098,6 +1130,11 @@ async function handleCancel(argv) {
 
   appendLogLine(job.logFile, "Cancelled by user.");
   upsertOrIgnore(workspaceRoot, { id: job.id, ...cancelled });
+
+  const patchDirectory = resolveReviewPatchDirectory(workspaceRoot, job.id);
+  if (patchDirectory && termination.delivered && termination.method !== "broker" && await waitForProcessExit(job.pid)) {
+    removeReviewPatchFiles(patchDirectory);
+  }
 
   const payload = {
     jobId: job.id,

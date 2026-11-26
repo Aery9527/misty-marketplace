@@ -6,9 +6,10 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 import { requestBrokerShutdown } from "./lib/broker-lifecycle.mjs";
+import { removeReviewPatchFiles } from "./lib/git.mjs";
 import { loadAuthoritativeJobs } from "./lib/job-control.mjs";
 import { terminateProcessTree, waitForProcessExit } from "./lib/process.mjs";
-import { isActiveJobStatus, resolveJobFile, updateState } from "./lib/state.mjs";
+import { isActiveJobStatus, resolveJobFile, resolveReviewPatchDirectory, updateState } from "./lib/state.mjs";
 import { resolveWorkspaceRoot } from "./lib/workspace.mjs";
 
 const COMPANION_PATH = fileURLToPath(new URL("./claude-companion.mjs", import.meta.url));
@@ -65,6 +66,7 @@ export async function handleSessionLifecycleEvent(input = {}, options = {}) {
     if (shutdownAcknowledged) {
       try {
         if (await waitForExit(job.pid)) {
+          removeReviewPatchFiles(resolveReviewPatchDirectory(cwd, job.id));
           removableJobs.push(job);
         }
       } catch {
@@ -80,6 +82,7 @@ export async function handleSessionLifecycleEvent(input = {}, options = {}) {
           sameWorkspace: (candidateCwd) => resolveWorkspaceRoot(candidateCwd) === cwd
         });
         if (termination?.attempted === true && await waitForExit(job.pid)) {
+          removeReviewPatchFiles(resolveReviewPatchDirectory(cwd, job.id));
           removableJobs.push(job);
         }
       } catch {
