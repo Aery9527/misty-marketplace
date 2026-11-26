@@ -41,6 +41,8 @@ import (
 )
 
 // RequestCounter counts the requests that the handler receives, and writes the count per interval.
+//
+//   - It is safe for concurrent use by multiple goroutines.
 type RequestCounter struct {
 	count atomic.Int64 // Number of requests received in the current interval.
 }

@@ -41,6 +41,8 @@ import (
 )
 
 // RequestCounter 統計處理入口收到的請求數，分區間輸出。
+//
+//   - 可由多個 goroutine 同時使用。
 type RequestCounter struct {
 	count atomic.Int64 // 目前區間收到的請求數。
 }
