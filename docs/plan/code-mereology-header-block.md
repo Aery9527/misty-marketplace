@@ -55,6 +55,9 @@
     - 區塊的 `parts` 取代現行內文中的下一層節點清單，同一份清單只寫在一處。
 - 總 tag 表放在 repository 根目錄的設定檔 `docs/code-mereology.json`，位於 `tags` 鍵之下，格式為 `{"tags": {"tag1": "說明", "tag2": "說明"}}`；monorepo 也只有這一份。
     - 檔名取自 skill 名稱，tag 內縮一層，讓未來的其他設定能以新的頂層鍵加入同一個檔案。
+    - tag 名稱只能由小寫英文字母與數字組成，中間最多用兩個 `-` 串接，也就是最多三段；規則為 `^[a-z0-9]+(-[a-z0-9]+){0,2}$`。
+        - 合格：`backend`、`oauth2`、`data-access`、`user-data-access`。
+        - 不合格：`Backend`、`data_access`、`a-b-c-d`、`-backend`、`data--access`、`資料存取`。
     - 總 tag 表與文件的 `tags` 必須雙向一致：文件用到的 tag 必須在表中，表中的每個 tag 必須至少被一份文件宣告；由腳本驗證。
 - tag 具有繼承性：下層文件具有上層文件的 tag，且嚴禁重複宣告；由腳本驗證。
     - 繼承沿每一條 `parts` 邊往下傳，不沿 `depends` 邊。
@@ -92,7 +95,7 @@
     - 說明必填，只寫一行，寫明為什麼連到它：`parts` 寫該文件在這個組成中扮演的角色，`depends` 寫需要對方提供的能力。
     - 只列 `bd-*.md` 與 `sd-*.md`；不列程式碼、`-plan`、`-perf`，也不列指回上層的導航連結。
 - `tags` 的項目：
-    - 值是 inline code，寫在鍵的同一行，項目之間以 `、` 或 `,` 分隔。
+    - 值是 inline code，寫在鍵的同一行，項目之間固定以半形 `,` 分隔，例如 `` `backend`, `persistence` ``。
     - 每個都必須是 `docs/code-mereology.json` 中 `tags` 的鍵，大小寫須相同。
     - 只寫這份文件自己宣告的 tag，嚴禁寫入已繼承的 tag；見 [tag 繼承](#tag-繼承)。
 - 區塊計入 300 行上限；現行規則已把純連結行計入。
@@ -317,7 +320,7 @@ service/table/sd-table.md	tag	persistence
 | 文件缺少某個鍵，或同一個鍵出現兩次 | 錯誤 |
 | `parts` 或 `depends` 的項目不符合 `- <連結>: <說明>`，例如 reference-style link、一個項目有多個連結、鍵的那一行冒號後有內容 | 錯誤 |
 | `parts` 或 `depends` 的項目沒有說明，或說明含有 tab 字元 | 錯誤 |
-| `tags` 的值含有 inline code 與分隔符號以外的內容 | 錯誤 |
+| `tags` 的值含有 inline code 與分隔用的 `,` 以外的內容，例如以 `、` 分隔 | 錯誤 |
 | 連結沒有 `(planned)`，但目標不存在 | 錯誤 |
 | 連結有 `(planned)`，但目標已存在 | 錯誤 |
 | 目標不是 `bd-*.md` 或 `sd-*.md`，或是 `-plan`、`-perf` 檔 | 錯誤 |
@@ -329,6 +332,7 @@ service/table/sd-table.md	tag	persistence
 | `depends` 的連結形成循環 | 不算錯誤，不檢查 |
 | `docs/code-mereology.json` 不是 JSON 物件，或有 `tags` 以外的頂層鍵 | 錯誤 |
 | `docs/code-mereology.json` 的 `tags` 不是「字串對字串」的 JSON 物件 | 錯誤 |
+| `docs/code-mereology.json` 的 tag 名稱不符合命名規則，例如 `Backend` 或 `a-b-c-d` | 錯誤 |
 | `docs/code-mereology.json` 的 tag 沒有被任何文件在 `tags` 宣告 | 錯誤；繼承而來的不算宣告 |
 | 檔案不是 UTF-8 | 錯誤，其他檔案照常處理 |
 
@@ -412,7 +416,7 @@ service/table/sd-table.md	tag	persistence
 
 - `skills/code-mereology/SKILL.md`：
     - 「文件模型」新增區塊的定義與格式，並把結構邊改為由區塊宣告；`bd-*.md` 的「下一層實際節點必須另用 Markdown 連結清單列出」改為由 `parts` 列出。
-    - 「文件模型」新增 tag 繼承的規則與設定檔 `docs/code-mereology.json`。
+    - 「文件模型」新增 tag 繼承的規則、tag 的命名規則與設定檔 `docs/code-mereology.json`。
     - 「文件模型」新增[文件鏈的完整性](#文件鏈的完整性)的兩條歸屬規則：一般的 `sd-*.md` 必須能從某份 `bd-*.md` 沿 `parts` 走到；partial leaf 必須被至少一份文件連到。
     - 新增 `list-relations.mjs` 的用法與選項。
     - 「階段之外的程式碼修改」補上[使用時機](#agent-的使用時機)表中對應的查詢。
