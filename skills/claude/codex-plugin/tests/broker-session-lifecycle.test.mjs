@@ -15,7 +15,7 @@ import {
 } from "../scripts/lib/broker-lifecycle.mjs";
 import { createBrokerEndpoint, parseBrokerEndpoint } from "../scripts/lib/broker-endpoint.mjs";
 import { buildStatusSnapshot } from "../scripts/lib/job-control.mjs";
-import { loadState, readJobFile, resolveJobFile, saveState, writeJobFile } from "../scripts/lib/state.mjs";
+import { loadState, readJobFile, resolveJobFile, resolveReviewPatchDirectory, saveState, writeJobFile } from "../scripts/lib/state.mjs";
 import { createJobRecord, updateBrokerEndpointIfActive } from "../scripts/lib/tracked-jobs.mjs";
 import { handleSessionLifecycleEvent } from "../scripts/session-lifecycle-hook.mjs";
 import { makeTempDir } from "./helpers.mjs";
@@ -420,9 +420,12 @@ test("session end preserves brokered job evidence until worker exit is observed"
 
 test("session end falls back to process termination when broker shutdown is not acknowledged", async () => {
   const workspace = makeTempDir("claude-session-fallback-");
-  const current = job("a-running", "session-a", { brokerEndpoint: "pipe:a", pid: 4400 });
+  const current = job("adv-running", "session-a", { brokerEndpoint: "pipe:a", pid: 4400 });
   saveState(workspace, { jobs: [current] });
   writeJobFile(workspace, current.id, current);
+  const patchDirectory = resolveReviewPatchDirectory(workspace, current.id);
+  fs.mkdirSync(patchDirectory);
+  fs.writeFileSync(path.join(patchDirectory, "unstaged.patch"), "fixture");
   const terminations = [];
 
   await handleSessionLifecycleEvent(
@@ -439,11 +442,12 @@ test("session end falls back to process termination when broker shutdown is not 
 
   assert.equal(terminations.length, 1);
   assert.equal(terminations[0].pid, 4400);
-  assert.equal(terminations[0].identity.identity, "a-running");
+  assert.equal(terminations[0].identity.identity, current.id);
   assert.match(terminations[0].identity.companionPath, /claude-companion\.mjs$/);
   assert.equal(terminations[0].identity.runtimePath, process.execPath);
   assert.equal(terminations[0].identity.sameWorkspace(workspace), true);
   assert.deepEqual(loadState(workspace).jobs, []);
+  assert.equal(fs.existsSync(patchDirectory), false);
 });
 
 test("session end preserves a job when fallback process identity cannot be verified", async () => {
@@ -470,9 +474,12 @@ test("session end preserves a job when fallback process identity cannot be verif
 
 test("session end preserves evidence when a signalled worker remains alive", async () => {
   const workspace = makeTempDir("claude-session-still-alive-");
-  const current = job("a-running", "session-a", { pid: 4402 });
+  const current = job("adv-running", "session-a", { pid: 4402 });
   saveState(workspace, { jobs: [current] });
   writeJobFile(workspace, current.id, current);
+  const patchDirectory = resolveReviewPatchDirectory(workspace, current.id);
+  fs.mkdirSync(patchDirectory);
+  fs.writeFileSync(path.join(patchDirectory, "unstaged.patch"), "fixture");
 
   const result = await handleSessionLifecycleEvent(
     { hook_event_name: "SessionEnd", cwd: workspace, session_id: "session-a" },
@@ -484,6 +491,7 @@ test("session end preserves evidence when a signalled worker remains alive", asy
 
   assert.deepEqual(result.cleanedJobIds, []);
   assert.equal(readJobFile(resolveJobFile(workspace, current.id)).status, "running");
+  assert.equal(fs.existsSync(path.join(patchDirectory, "unstaged.patch")), true);
 });
 
 test("session end discovers a session job from its authoritative file when the listing lost it", async () => {

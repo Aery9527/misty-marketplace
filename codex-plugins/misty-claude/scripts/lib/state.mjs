@@ -352,3 +352,7 @@ export function resolveJobLogFile(cwd, jobId) {
 export function resolveJobFile(cwd, jobId) {
   return path.join(resolveJobsDir(cwd), `${jobId}.json`);
 }
+
+export function resolveReviewPatchDirectory(cwd, jobId) {
+  return /^adv-[a-z\d-]+$/i.test(jobId) ? path.resolve(resolveJobsDir(cwd), `${jobId}.patches`) : null;
+}

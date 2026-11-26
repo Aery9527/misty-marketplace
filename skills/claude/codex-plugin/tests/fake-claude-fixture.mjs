@@ -116,6 +116,13 @@ function completeTurn(text) {
   if (process.env.FAKE_CLAUDE_PROMPT_FILE) {
     fs.appendFileSync(process.env.FAKE_CLAUDE_PROMPT_FILE, String(text ?? "") + "\\n");
   }
+  if (process.env.FAKE_CLAUDE_PATCHES_FILE) {
+    const prefix = "Tracked patch files (JSON): ";
+    const entry = String(text).split("\\n").find((line) => line.startsWith(prefix));
+    const paths = JSON.parse(entry.slice(prefix.length));
+    const patches = paths.map((file) => ({ path: file, contents: fs.readFileSync(file, "utf8") }));
+    fs.writeFileSync(process.env.FAKE_CLAUDE_PATCHES_FILE, JSON.stringify(patches));
+  }
   // A schema-constrained turn answers with the object as well as the text, which is what
   // the real CLI does on the final result event.
   if (argv.includes("--json-schema")) {

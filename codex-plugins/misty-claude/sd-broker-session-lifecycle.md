@@ -78,6 +78,7 @@ Endpoint 必須 ready 後，job 才能宣告具備 brokered control。Cancellati
 - Failure behavior — control endpoint 建立失敗時可以 fallback 到 direct runtime，但必須可觀察，且嚴禁回報成支援 graceful interruption。失敗或未回覆的 interrupt 可以 fallback 到 verified process termination。
 - Session scope — session-end event 必須從 listing 與 authoritative job files 共同找出 jobs，再只清理帶有該 Codex session identifier 的項目。Codex 未提供 durable identifier 時，hook 嚴禁猜測 identifier 或移除 workspace 的所有 job。
 - Cleanup safety — acknowledged broker shutdown 或 verified fallback termination 後，除非已觀察到 worker exit，否則 active job files 必須保留。殘留 record 只增加人工 cleanup；終止無關 process 或刪除唯一 evidence 都不是可接受的 fallback。
+    - 此條件也適用於 job 的 tracked diff patch。確認 worker 退出後，只清理該 job 的 patch 檔。
 - Host delivery — 直接呼叫 hook 驗證 parsing 與 cleanup；互動式 Codex TUI probe 已確認 `SessionStart` 與 `SessionEnd` 會連同 workspace 與已安裝 plugin environment 一起送達。Hook process 不會收到 `CODEX_THREAD_ID`；其 payload identifier 會等於 transcript 的 `session_meta.id`，而 command 端的 `CODEX_THREAD_ID` 識別的正是該值。
 - Limits — acknowledged interrupt 只證明 Claude 接受 control request，不代表所有 child process 已退出，也不代表 job 已進入 terminal state。
 - Turn lifetime — runtime 不設定預設的總執行時間上限。呼叫端負責 idle 與 absolute monitoring，並可在任務需要時明確傳入 turn timeout；process 存活本身不代表 model 有進度。

@@ -48,6 +48,8 @@ description: >-
 - 必須重述審查印出的 `Scope` 與 `Evidence` 行，嚴禁把結果改述成涵蓋整個 repository。
   在 `/claude-adversarial-review`，這兩行描述的是 bridge 自己蒐集到的內容，而那是由一連串
   git 指令依序讀出的，不是單一時點的快照。
+  超過任一內嵌上限時，bridge 會將蒐集到的 tracked diff 以暫存 patch 檔提供給 Claude。
+  `Evidence` 會說明交付給 Claude 讀取的內容。
   在 `/claude-review`，Scope 只代表「所請求的範圍」：內建 reviewer 會自行決定最終範圍，
   因此嚴禁告訴使用者有任何東西被排除在外。
 - 在協作審查流程之外，當使用者要 Claude「把事情做完」而非「評估」時，必須路由到
