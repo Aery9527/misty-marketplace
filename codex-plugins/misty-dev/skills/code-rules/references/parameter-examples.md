@@ -61,7 +61,7 @@ func Total(unitCents, quantity, kilograms, centsPerKilogram uint64) uint64 {
 }
 ```
 
-- Assessment: the goods amount and the shipping cost are each a calculation with its own meaning, and each can be needed alone; `Total` writes them together, so they can only be calculated together. `unitCents` and `quantity` serve only the goods amount, and `kilograms` and `centsPerKilogram` serve only the shipping cost, so a caller that needs only the shipping cost has to write `Total(0, 0, kilograms, centsPerKilogram)`, passing `0` for the parameters it does not use. So the function is split into two, and the four parameters are not wrapped in one type; after wrapping, the two calculations would still be tied together, and the caller would still fill `0` into the fields it does not use.
+- Assessment: the goods amount and the shipping cost are each a calculation with its own meaning, and each can be needed alone; `Total` writes them together, so they can only be calculated together. `unitCents` and `quantity` serve only the goods amount, and `kilograms` and `centsPerKilogram` serve only the shipping cost, so a caller that needs only the shipping cost has to write `Total(0, 0, kilograms, centsPerKilogram)`, passing `0` for the parameters it does not use. So the function is split into two, and the four parameters are not wrapped in one struct; after wrapping, the two calculations would still be tied together, and the caller would still fill `0` into the fields it does not use.
 
 - After: each function takes only the two parameters that it uses; a caller that needs the sum adds the two results, and the precondition from before the change, that the sum fits the return type, becomes the responsibility of the operation entry point that needs the sum. Both are internal calculations that take data the operation entry point has verified.
 
@@ -165,7 +165,7 @@ func (service *MemberService) CreateMember(name, email, phone, address, locale s
 
 - Assessment: the five parameters are all the registration data of one member, and all serve the single operation of creating a member; no caller needs only a part of them, so the function is not split. The five parameters pass together from `MemberService` to `MemberStore`, and the two signatures repeat the same parameters; when the registration data gains a field, both signatures change. So `MemberRegistration` wraps them.
 
-- After: `MemberRegistration` is the only parameter, and this type states in one place whether each field is required and what its default is.
+- After: `MemberRegistration` is the only parameter, and this struct states in one place whether each field is required and what its default is.
 
 ```go
 // MemberRegistration is the registration data of one new member.

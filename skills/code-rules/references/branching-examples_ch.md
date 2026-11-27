@@ -80,7 +80,7 @@ func StatusLabel(status string) string {
 - 核心模組提供命令執行器，各功能模組提供自己的命令：健康檢查模組提供 `ping`，部署模組提供 `status`。專案明確要求新增功能模組時不修改核心模組。
 - 每個程式碼區塊是一個 package 的一個檔案；模組路徑以 `example.com/app` 為例。
 
-- 調整前：核心模組的 `CommandDispatcher` 以 `switch` 列出各模組的命令，並直接呼叫各模組的函式。
+- 調整前：核心模組的 `CommandDispatcher` 以 `switch` 列出各模組的命令，並直接呼叫各模組的 func。
 
 ```go
 package health
@@ -140,7 +140,7 @@ func (dispatcher *CommandDispatcher) Run(name string, output io.Writer) error {
 }
 ```
 
-- 判斷：命令由各功能模組提供，是開放集合。核心模組的 `switch` 必須列出每個模組的命令，並匯入它們的 package；新增功能模組時就要修改核心模組。因此命令名稱與處理者的對應由外部註冊：核心模組定義共同的 `CommandHandler`，各功能模組提供符合它的型別，在組裝時交給 `CommandDispatcher`，核心模組只相依 `CommandHandler`。
+- 判斷：命令由各功能模組提供，是開放集合。核心模組的 `switch` 必須列出每個模組的命令，並匯入它們的 package；新增功能模組時就要修改核心模組。因此命令名稱與處理者的對應由外部註冊：核心模組定義共同的 `CommandHandler`，各功能模組在組裝時將自己的 `CommandHandler` 實作交給 `CommandDispatcher`，核心模組只相依 `CommandHandler`。
 
 - 調整後：`NewCommandDispatcher` 把收到的命令建成以名稱索引的分派表，並驗證名稱；`Run` 由這份表找出命令。核心模組不再匯入功能模組。
 
@@ -256,7 +256,7 @@ func (StatusCommand) Run() string {
 
 - 前後的結果相同：`ping` 寫入 `"pong\n"`；`status` 寫入 `"ready\n"`；未知的 `missing` 回傳訊息為 `unknown command: missing` 的錯誤，且不寫入輸出。
 
-- 調整後，兩個命令的名稱相同時，`NewCommandDispatcher` 回傳訊息為 `duplicate command: ping` 的錯誤。新增功能模組的命令時，新增一個符合 `CommandHandler` 的型別並在組裝處提供；核心模組不必修改。Go 的 interface 由方法集合隱含滿足，功能模組不需要匯入核心模組。
+- 調整後，兩個命令的名稱相同時，`NewCommandDispatcher` 回傳訊息為 `duplicate command: ping` 的錯誤。新增功能模組的命令時，新增一個 `CommandHandler` 的實作並在組裝處提供；核心模組不必修改。Go 的 interface 由方法集合隱含滿足，功能模組不需要匯入核心模組。
 
 ## Strategy
 
@@ -323,7 +323,7 @@ func (service *ShippingService) ShippingFee(order ShippingOrder) (uint64, error)
 }
 ```
 
-- 判斷：兩種演算法各有自己的費率與計算，專案也明確要求持續增加；每新增一種，`ShippingFee` 就多一個分支，在其中讀取自己在 `ShippingConfig` 的設定並執行自己的計算，所有演算法的計算都集中在同一個函式。具名函式可以分開各項計算；這裡採用策略，也讓每種演算法各自保存計算所需的費率：`flatRate` 保存每次配送的費用，`perKilogram` 保存起始費和每公斤費用。所以以共同的內部計價契約 `Fee(kilograms)` 封裝各演算法的設定與計算；配送方式由服務管理，服務仍依訂單既有的配送方式欄位以 `switch` 逐筆選擇策略。
+- 判斷：兩種演算法各有自己的費率與計算，專案也明確要求持續增加；每新增一種，`ShippingFee` 就多一個分支，在其中讀取自己在 `ShippingConfig` 的設定並執行自己的計算，所有演算法的計算都集中在同一個 func。具名的 func 可以分開各項計算；這裡採用策略，也讓每種演算法各自保存計算所需的費率：`flatRate` 保存每次配送的費用，`perKilogram` 保存起始費和每公斤費用。所以以共同的內部計價契約 `Fee(kilograms)` 封裝各演算法的設定與計算；配送方式由服務管理，服務仍依訂單既有的配送方式欄位以 `switch` 逐筆選擇策略。
 
 - 調整後：以相同的設定建立私有的策略，選擇責任仍在服務內；呼叫端提供既有的訂單資料。
 

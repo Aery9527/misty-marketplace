@@ -1,9 +1,9 @@
 # 宣告註解範例
 
 - 以下範例使用 Go，請依目標語言調整語法與型別。
-- 範例示範的註解形式：型別與函式以宣告上方的註解說明；struct 的 field 以行尾註解說明；函式的參數在函式的註解內說明；摘要加上補充要點共有兩個以上獨立要點時，補充要點以清單列出。
+- 以 `type` 宣告的名稱與 func 都以宣告上方的註解說明。struct 的 field 以行尾註解說明。func 的參數在該 func 的註解內說明。摘要與補充要點合計有兩個以上獨立要點時，補充要點以清單列出。
 - 所有參數都能由名稱與型別看出呼叫端需要的資訊時，註解不說明參數，例如 `Sender.Send` 的 `message`。
-- 實作 interface 的 method 沒有這個實作特有的行為或限制時，只寫一行指出它實作的 interface，契約由 interface 的註解說明，例如 `WriterSender.Send`。
+- 實作 interface 要求的 func 時，若沒有該實作特有的行為或限制，只寫一行指出對應的 interface。例如 `WriterSender.Send` 的註解指出 `Sender`，契約由 `Sender` 的註解說明。
 
 ```go
 import (

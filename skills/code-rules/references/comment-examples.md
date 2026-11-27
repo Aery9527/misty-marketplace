@@ -1,9 +1,9 @@
 # Declaration Comment Examples
 
 - These examples use Go; adapt the syntax and types to the target language.
-- The comment forms that the example shows: a comment above the declaration describes a type or a function; a trailing comment describes a field of a struct; the comment of a function describes its parameters; when the summary and the supplementary points make two or more independent points, the supplementary points are a list.
+- A comment above the declaration describes a name declared with `type` or a function. A trailing comment describes a field of a struct. A function's comment describes its parameters. When the summary and the supplementary points make two or more independent points, write the supplementary points as a list.
 - When the name and the type of every parameter show all that a caller needs, the comment does not describe the parameters, e.g. `message` of `Sender.Send`.
-- A method that implements an interface method, and has no behavior or constraint specific to this implementation, has one line that names the interface; the comment of the interface states the contract, e.g. `WriterSender.Send`.
+- When implementing a `func` required by an interface, write one line naming the interface if the implementation adds no specific behavior or constraints. For example, the comment on `WriterSender.Send` names `Sender`, whose comments describe the contract.
 
 ```go
 import (

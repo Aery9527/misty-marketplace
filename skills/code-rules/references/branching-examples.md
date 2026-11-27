@@ -140,7 +140,7 @@ func (dispatcher *CommandDispatcher) Run(name string, output io.Writer) error {
 }
 ```
 
-- Assessment: the feature modules provide the commands, so they are an open set. The `switch` in the core module has to list the commands of every module and import their packages; adding a feature module then changes the core module. So the mapping from a command name to its handler is registered from outside: the core module defines the common `CommandHandler`, each feature module provides a type that satisfies it and hands it to `CommandDispatcher` at assembly, and the core module depends only on `CommandHandler`.
+- Assessment: the feature modules provide the commands, so they are an open set. The `switch` in the core module has to list the commands of every module and import their packages; adding a feature module then changes the core module. So the mapping from a command name to its handler is registered from outside: the core module defines the common `CommandHandler`, each feature module hands its implementation of `CommandHandler` to `CommandDispatcher` at assembly, and the core module depends only on `CommandHandler`.
 
 - After: `NewCommandDispatcher` builds the commands it receives into a dispatch table indexed by name, and validates the names; `Run` finds the command in this table. The core module no longer imports the feature modules.
 
@@ -256,7 +256,7 @@ func (StatusCommand) Run() string {
 
 - The results are the same before and after: `ping` writes `"pong\n"`; `status` writes `"ready\n"`; the unknown `missing` returns an error with the message `unknown command: missing`, and writes nothing to the output.
 
-- After the change, when two commands have the same name, `NewCommandDispatcher` returns an error with the message `duplicate command: ping`. To add a command of a feature module, add a type that satisfies `CommandHandler` and provide it at assembly; the core module does not change. A Go interface is satisfied implicitly by the method set, so a feature module does not need to import the core module.
+- After the change, when two commands have the same name, `NewCommandDispatcher` returns an error with the message `duplicate command: ping`. To add a command of a feature module, add an implementation of `CommandHandler` and provide it at assembly; the core module does not change. A Go interface is satisfied implicitly by the method set, so a feature module does not need to import the core module.
 
 ## Strategy
 

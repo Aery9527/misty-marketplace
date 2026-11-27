@@ -20,9 +20,9 @@ func Contains(minX, maxX, minY, maxY, x, y float64) bool {
 }
 ```
 
-- 判斷：四個邊界值描述同一個搜尋範圍，會一起在儲存與查詢間傳遞；`Contains` 只有判斷這一項責任。因此引入 `Bounds` 包裝四個邊界值，而不是拆分函式。
+- 判斷：四個邊界值描述同一個搜尋範圍，會一起在儲存與查詢間傳遞；`Contains` 只有判斷這一項責任。因此引入 `Bounds` 包裝四個邊界值，而不是拆分 func。
 
-- 調整後：`Contains` 接收 `Bounds` 與查詢點的兩個座標，共三個參數。判斷的邏輯仍在函式 `Contains`，`Bounds` 只宣告欄位；改變的只有參數的傳遞方式。
+- 調整後：`Contains` 接收 `Bounds` 與查詢點的兩個座標，共三個參數。判斷的邏輯仍在 func `Contains`，`Bounds` 只宣告欄位；改變的只有參數的傳遞方式。
 
 ```go
 // Bounds 是矩形搜尋範圍，包含其邊界。
@@ -61,9 +61,9 @@ func Total(unitCents, quantity, kilograms, centsPerKilogram uint64) uint64 {
 }
 ```
 
-- 判斷：商品金額與運費各自是有含意的計算，可能被單獨使用；`Total` 把兩者寫在一起，就只能一起計算。`unitCents` 與 `quantity` 只用於商品金額，`kilograms` 與 `centsPerKilogram` 只用於運費，所以只需要運費的呼叫端必須寫成 `Total(0, 0, kilograms, centsPerKilogram)`，為用不到的參數傳入 `0`。因此拆成兩個函式，而不是把四個參數包裝成一個型別；包裝之後兩個計算仍然綁在一起，呼叫端仍須為用不到的欄位填 `0`。
+- 判斷：商品金額與運費各自是有含意的計算，可能被單獨使用；`Total` 把兩者寫在一起，就只能一起計算。`unitCents` 與 `quantity` 只用於商品金額，`kilograms` 與 `centsPerKilogram` 只用於運費，所以只需要運費的呼叫端必須寫成 `Total(0, 0, kilograms, centsPerKilogram)`，為用不到的參數傳入 `0`。因此拆成兩個 func，而不是把四個參數包裝成一個 struct；包裝之後兩個計算仍然綁在一起，呼叫端仍須為用不到的欄位填 `0`。
 
-- 調整後：每個函式只接收自己使用的兩個參數；需要總額的呼叫端把兩個結果相加；調整前「總額可由回傳型別表示」的前置條件，改由需要總額的操作入口負責。兩者都是內部計算，接收操作入口已驗證的資料。
+- 調整後：每個 func 只接收自己使用的兩個參數；需要總額的呼叫端把兩個結果相加；調整前「總額可由回傳型別表示」的前置條件，改由需要總額的操作入口負責。兩者都是內部計算，接收操作入口已驗證的資料。
 
 ```go
 // Subtotal 依單價與數量計算商品金額，單位為分。
@@ -163,9 +163,9 @@ func (service *MemberService) CreateMember(name, email, phone, address, locale s
 }
 ```
 
-- 判斷：五個參數都是同一位會員的註冊資料，全部用於建立會員這一項操作，沒有呼叫端只需要其中一部分，所以不拆分函式。這五個參數會一起從 `MemberService` 傳到 `MemberStore`，兩個簽名重複相同的參數；註冊資料增加欄位時，兩個簽名都要修改。因此以 `MemberRegistration` 包裝。
+- 判斷：五個參數都是同一位會員的註冊資料，全部用於建立會員這一項操作，沒有呼叫端只需要其中一部分，所以不拆分 func。這五個參數會一起從 `MemberService` 傳到 `MemberStore`，兩個簽名重複相同的參數；註冊資料增加欄位時，兩個簽名都要修改。因此以 `MemberRegistration` 包裝。
 
-- 調整後：`MemberRegistration` 是唯一的參數，每個欄位是否必填與預設值集中註明在這個型別。
+- 調整後：`MemberRegistration` 是唯一的參數，每個欄位是否必填與預設值集中註明在這個 struct。
 
 ```go
 // MemberRegistration 是一位新會員的註冊資料。
