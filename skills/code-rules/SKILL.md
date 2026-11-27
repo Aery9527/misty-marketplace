@@ -22,7 +22,7 @@ description: >-
 
 1. Nesting limit: at most 2 levels of control structures; an `if`, a loop, a `switch`, and an exception-handling block each count as one level, e.g. `if`, `for`, `switch`, and `select` in Go.
     1. `if a { for _, x := range xs { use(x) } }` is allowed; a third structure inside it, e.g. `if b`, is prohibited.
-    2. An `if` / `else if` / `else` chain counts as one level; so does a `try` with its `catch` and `finally` blocks.
+    2. An `if` / `else if` / `else` chain counts as one level.
 2. Function content: a group of steps that serves one purpose MUST be extracted into a function whose name states that purpose; extract it only when the function name can clearly carry the meaning of those lines of code combined.
 3. Function grouping: when the meaning of several functions can be gathered further under a name with higher cohesion and a clearer boundary, create a type or a module to hold these functions of the same scope, e.g. a package or a type with methods in Go.
 4. Function parameters: functions that contain logic take at most 3 parameters, with constructors exempt. Function signatures MUST stay stable for the foreseeable future.
