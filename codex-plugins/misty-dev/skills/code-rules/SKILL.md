@@ -10,6 +10,7 @@ description: >-
 
 # Code Rules
 
+- Each item in this document MUST start with a short title followed by a colon, then its explanation.
 - MUST apply this precedence: explicit project rules, consistent conventions in existing project code, language conventions, then these rules. Use `arch-rules` for the design trade-offs that these rules do not decide.
 - These rules are language-independent; the examples use Go, and MUST be adapted to the syntax and types of the target language.
 
@@ -33,7 +34,7 @@ description: >-
 6. Constants of the same meaning: when constants in many places stand for the same meaning, MUST assign or concatenate them from one constant, so that the code states their relation.
     1. E.g. a URL path prefix: define one constant for the prefix of the API endpoints of one scope and concatenate it; MUST NOT repeat the prefix as a literal, so that changing the prefix changes one constant, and the prefix is easier to trace.
     2. Tests MUST specify the values under test in requests and expected results independently. They MUST NOT reference the production constants that define those values, so a wrong constant causes the test to fail. When multiple tests specify a value with the same meaning, MUST use a test-only constant. Write a value specified by one test as a literal. This is the only exception to sharing constants of the same meaning.
-7. A type name MUST convey the meaning of its data or its responsibility. A suffix MUST add specific meaning, e.g. `ShippingConfig` names shipping settings. MUST NOT use a suffix that adds no meaning, e.g. `MemberData` when it cannot be distinguished from `Member`.
+7. Type naming: MUST convey the meaning of the type's data or its responsibility. A suffix MUST add specific meaning, e.g. `ShippingConfig` names shipping settings. MUST NOT use a suffix that adds no meaning, e.g. `MemberData` when it cannot be distinguished from `Member`.
 8. Call order: functions MAY have a call order, i.e. one function works correctly only after another function was called, e.g. `index.Find(key)` only after `index.Load()`; but a call order MUST NOT be implicit, and MUST be stated in comments, see item 3 of the Comment Principles.
     1. A function that is called out of order MUST fail with a documented error that has a clear error message, e.g. return `ErrNotLoaded` in Go.
     2. The types can express the call order instead, so that the compiler checks it, and the comments and the sub-item above are then not needed: the function that is called first returns the object that the next step uses, e.g. first get the connection with `connection, err := gateway.Connect()`, then call `connection.Send(message)`; without a connection, `Send` cannot be called.
