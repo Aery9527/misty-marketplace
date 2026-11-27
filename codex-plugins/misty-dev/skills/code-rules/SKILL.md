@@ -10,13 +10,13 @@ description: >-
 
 # Code Rules
 
-- Each item in this document MUST start with a short title followed by a colon, then its explanation.
+- Each top-level numbered item MUST start with a short title followed by a colon, then its explanation. Titles are optional for nested items.
 - MUST apply this precedence: explicit project rules, consistent conventions in existing project code, language conventions, then these rules. Use `arch-rules` for the design trade-offs that these rules do not decide.
 - These rules are language-independent; the examples use Go, and MUST be adapted to the syntax and types of the target language.
 
 ## Change Principles
 
-1. Before changing behavior, MUST read direct callers, tests covering the affected behavior, and the containing module to confirm the existing contract.
+1. Confirm the existing contract: before changing behavior, MUST read direct callers, tests covering the affected behavior, and the containing module.
 
 ## Code Principles
 
@@ -105,19 +105,19 @@ description: >-
 
 ## Logging Principles
 
-1. Every piece of information MUST have traceable value for later tracking, statistics, analysis, or debugging. Information that helps none of these MUST NOT be logged.
-2. Every log line MUST be traceable to one code location, either because the message is unique or because the logger attaches the source location automatically.
-3. Logs MUST use a compact structure, not prose. If the project has a structured-field logging convention, MUST follow it; otherwise use a fixed-order positional format. Field meaning comes from the code location.
-4. A log written solely for statistics MUST be aggregated first, then written on a timer or a count, rather than one line per event.
+1. Useful information: every piece of information MUST have traceable value for later tracking, statistics, analysis, or debugging. Information that helps none of these MUST NOT be logged.
+2. Source location: every log line MUST be traceable to one code location, either because the message is unique or because the logger attaches the source location automatically.
+3. Log format: logs MUST use a compact structure, not prose. If the project has a structured-field logging convention, MUST follow it; otherwise use a fixed-order positional format. Field meaning comes from the code location.
+4. Aggregation: a log written solely for statistics MUST be aggregated first, then written on a timer or a count, rather than one line per event.
     1. If losing an unlogged interval is unacceptable, log each event instead; statistics may be derived from these logs.
     2. Event logs already kept for diagnostics or auditing may be reused for statistics.
-5. If the project has no level policy: `DEBUG` is for debugging, `INFO` records meaningful lifecycle events and aggregated statistics, `WARN` records recoverable degradation, and `ERROR` records failed outcomes that need human attention.
-6. MUST NOT dump whole requests, responses, or objects. Payload size and field count follow project limits; if none exist, log selected fields only.
+5. Log levels: if the project has no level policy, `DEBUG` is for debugging, `INFO` records meaningful lifecycle events and aggregated statistics, `WARN` records recoverable degradation, and `ERROR` records failed outcomes that need human attention.
+6. Payload limits: MUST NOT dump whole requests, responses, or objects. Payload size and field count follow project limits; if none exist, log selected fields only.
 
 ## Execution Awareness
 
-1. When handling code or HTML, if the current environment provides an available `LSP` tool that supports the language, MUST prefer it so lookup and edits follow real program symbols; otherwise use text-based tools.
-2. Colors in web pages and CSS MUST be defined in `OKLCH`. For other visual output, pick colors in OKLCH, then convert to a color space the target format supports.
+1. Symbol tools: when handling code or HTML, if the current environment provides an available `LSP` tool that supports the language, MUST prefer it so lookup and edits follow real program symbols; otherwise use text-based tools.
+2. Color space: colors in web pages and CSS MUST be defined in `OKLCH`. For other visual output, pick colors in OKLCH, then convert to a color space the target format supports.
 
 ## Example References
 
