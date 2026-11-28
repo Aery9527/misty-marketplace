@@ -10,7 +10,7 @@ description: >-
 
 # Code Rules
 
-- The explanations and examples below use Go. MUST adapt them to equivalent conventions and syntax in the target language.
+- The explanations and examples below use Go. MUST adapt them to equivalent conventions and syntax in the target language and preserve the core concepts of the principles.
 - MUST apply this precedence: explicit project rules, consistent conventions in existing project code, language conventions, then these rules.
 - Each top-level numbered item MUST start with a short title followed by a colon, then its explanation. Titles are optional for nested items.
 - Refer to numbered items as *Section:Number[+Number…]*. Join numbers from the same section with `+`.
@@ -18,10 +18,9 @@ description: >-
     - *Code Principles:2+3* refers to items 2 and 3 in that section.
     - A reference within its own section may omit the section name. For example, within Code Principles, *Code Principles:4.1* may be written as *4.1*.
     - A subitem may refer to its own parent item in plain language.
-
-## Change Principles
-
-1. Confirm the existing contract: before changing behavior, MUST read direct callers, tests covering the affected behavior, and the containing module.
+- When handling code or HTML, if the current environment provides an available `LSP` tool that supports the language, MUST prefer it so lookup and edits follow real program symbols. Otherwise, use text-based tools and mention that in the report.
+- Colors in web pages and CSS MUST be defined in `OKLCH`. For other visual output, pick colors in OKLCH, then convert to a color space the target format supports.
+- Before making any change to code, MUST read its direct callers, the tests covering the affected behavior, and the containing module.
 
 ## Code Principles
 
@@ -49,12 +48,6 @@ description: >-
     1. Steps that must complete together MUST be offered as one `func` and completed within one synchronized operation. If a step requires logic defined by the caller, the `func` MUST accept a callback and run it within that same operation.
     2. An interface's thread safety contract MUST be documented according to *Comment Principles:4.3*. When the interface requires thread safety, every implementation MUST meet that requirement.
     3. A `func` with a receiver MUST provide the same thread safety guarantees as its receiver. A mix of thread-safe and non-thread-safe `func` declarations for the same receiver usually indicates unclear responsibilities. MUST review the design to determine whether it needs adjustment.
-
-## Error Principles
-
-1. No hidden failure: MUST NOT swallow an error, return fake success, or silently degrade when the contract does not define a fallback.
-2. Where to handle: handle an error only where the code can recover, translate it to a boundary contract, or decide the final outcome; elsewhere, MUST let the error propagate to the caller, and to add context, propagate a new error that keeps the original one, e.g. `fmt.Errorf("load orders: %w", err)` in Go.
-3. Log once: log a failure once, at the layer that decides the final outcome. MUST NOT log and propagate at every layer.
 
 ## Architecture Principles
 
@@ -103,6 +96,12 @@ description: >-
 5. History isolation: change history belongs only in commit messages. MUST NOT put it in code comments.
 6. Fix in the same change: while making a change, when the affected code lacks a required comment, or its comment contradicts the confirmed purpose, data meaning, or contract, or violates the Comment Principles, MUST add or correct it in the same change.
 
+## Error Principles
+
+1. No hidden failure: MUST NOT swallow an error, return fake success, or silently degrade when the contract does not define a fallback.
+2. Where to handle: handle an error only where the code can recover, translate it to a boundary contract, or decide the final outcome; elsewhere, MUST let the error propagate to the caller, and to add context, propagate a new error that keeps the original one, e.g. `fmt.Errorf("load orders: %w", err)` in Go.
+3. Log once: log a failure once, at the layer that decides the final outcome. MUST NOT log and propagate at every layer.
+
 ## Logging Principles
 
 1. Useful information: every piece of information MUST have traceable value for later tracking, statistics, analysis, or debugging. Information that helps none of these MUST NOT be logged.
@@ -113,11 +112,6 @@ description: >-
     2. Event logs already kept for diagnostics or auditing may be reused for statistics.
 5. Log levels: if the project has no level policy, `DEBUG` is for debugging, `INFO` records meaningful lifecycle events and aggregated statistics, `WARN` records recoverable degradation, and `ERROR` records failed outcomes that need human attention.
 6. Payload limits: MUST NOT dump whole requests, responses, or objects. When logging fields from those sources, follow the project's limits on payload size and field count. If the project sets no limits, log only the fields needed for troubleshooting.
-
-## Execution Awareness
-
-1. Symbol tools: when handling code or HTML, if the current environment provides an available `LSP` tool that supports the language, MUST prefer it so lookup and edits follow real program symbols; otherwise use text-based tools.
-2. Color space: colors in web pages and CSS MUST be defined in `OKLCH`. For other visual output, pick colors in OKLCH, then convert to a color space the target format supports.
 
 ## Example References
 
