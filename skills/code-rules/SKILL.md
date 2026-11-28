@@ -112,7 +112,7 @@ description: >-
     1. If losing an unlogged interval is unacceptable, log each event instead; statistics may be derived from these logs.
     2. Event logs already kept for diagnostics or auditing may be reused for statistics.
 5. Log levels: if the project has no level policy, `DEBUG` is for debugging, `INFO` records meaningful lifecycle events and aggregated statistics, `WARN` records recoverable degradation, and `ERROR` records failed outcomes that need human attention.
-6. Payload limits: MUST NOT dump whole requests, responses, or objects. Payload size and field count follow project limits; if none exist, log selected fields only.
+6. Payload limits: MUST NOT dump whole requests, responses, or objects. When logging fields from those sources, follow the project's limits on payload size and field count. If the project sets no limits, log only the fields needed for troubleshooting.
 
 ## Execution Awareness
 
