@@ -20,6 +20,7 @@ description: >-
     - A subitem may refer to its own parent item in plain language.
 - When handling code or HTML, if the current environment provides an available `LSP` tool that supports the language, MUST prefer it so lookup and edits follow real program symbols. Otherwise, use text-based tools and mention that in the report.
 - Colors in web pages and CSS MUST be defined in `OKLCH`. For other visual output, pick colors in OKLCH, then convert to a color space the target format supports.
+- If following one of the principles below would make the code structure more complex, MUST identify the principle and explain how it conflicts with the current situation. Wait for the user to decide whether to make an exception or revise the principle.
 - Before making any change to code, MUST read its direct callers, the tests covering the affected behavior, and the containing module.
 
 ## Code Principles
