@@ -51,11 +51,11 @@ description: >-
 
 ## Architecture Principles
 
-1. Composition over inheritance: when several structs have a group of fields or behavior of the same scope, MUST compose them from a separate struct and define the common contract with an interface. MUST NOT use inheritance to share those fields or behavior.
-    1. E.g. API requests and responses often use a supertype to gather the same fields, but the same fields may still belong to different scopes; composition and interfaces separate the scopes properly, so that each API request or response holds what it needs and nothing more.
-    2. Required inheritance is exempt, e.g. inheritance required by the target language's exception mechanism or by a library. For a library, consider an adapter that bridges to composition.
+1. Composition: when several structs share a group of fields or behavior in the same scope, MUST extract the shared content into a separate struct and use it as a field in each struct. MUST define the contract for shared behavior with an interface.
+    1. For example, API requests that share the same pagination contract can each hold a `Pagination` field. Requests declare their own fields when those fields have the same name but belong to different scopes.
+    2. In target languages with inheritance, MUST also use composition to share fields or behavior. Inheritance is allowed when required by the language or a library. For a library, consider keeping the required inheritance inside an adapter.
 2. Module boundary: each module MUST define its own input and output declarations for its external boundary. For example, a lookup may accept a `MemberID` declared as `type MemberID string`. Code outside the module MUST use the module only through that boundary and MUST NOT depend on its internal implementation.
-    1. Business logic does not depend on the communication protocol. An HTTP adapter MUST convert `*http.Request` into the module's boundary input and write the module's output to `http.ResponseWriter`. An entry point that receives framework-bound request parameters MUST convert them to the module's boundary input before calling it and MUST NOT hold business logic.
+    1. For example, business logic does not depend on the communication protocol. An HTTP adapter MUST convert `*http.Request` into the module's boundary input and write the module's output to `http.ResponseWriter`. An entry point that receives framework-bound request parameters MUST convert them to the module's boundary input before calling it and MUST NOT hold business logic.
     2. MUST validate every parameter that enters through the boundary; within the trust scope of one module, MUST NOT mechanically repeat the same validation at every layer.
     3. Validation rejects only values that the contract forbids; `0`, `false`, and an empty string are not inherently invalid.
     4. MUST document the default of each value that the contract allows to be omitted. When omission differs in meaning from an explicit zero value, e.g. `0`, `false`, or an empty string, the input declaration MUST distinguish the two. For example, declare the field as `*int` so that `nil` means omitted.

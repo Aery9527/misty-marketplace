@@ -50,11 +50,11 @@ description: >-
 
 ## 架構原則
 
-1. 組合代替繼承：多個 struct 有相同 scope 的一組欄位或行為時，必須以獨立的 struct 組合而非繼承，透過 interface 定義共同契約。
-    1. 例如 API 的 request/response 通常會利用父類來收斂相同的欄位，但相同欄位可能還是有 scope 區分，透過組合與 interface 定義可以合適的區分 scope 使 API 的 request/response 擁有必要且沒有多餘的內容。
-    2. 必要的繼承不在此限，例如目標語言的例外機制或 lib 要求的繼承。lib 的情況可以考慮使用 adapter 來轉接組合。
+1. 組合：多個 struct 共用同一 scope 的一組欄位或行為時，必須將共用內容抽成獨立的 struct，再由各 struct 透過欄位組合使用。共同行為的契約必須以 interface 定義。
+    1. 例如共用同一分頁契約的 API request 可各自持有 `Pagination` 欄位。名稱相同但屬於不同 scope 的欄位由各 request 自行宣告。
+    2. 目標語言支援繼承時，共用欄位或行為也必須採用組合。語言機制或函式庫要求繼承時，可依其契約使用。可考慮將函式庫要求的繼承封裝在 adapter 內。
 2. 模組邊界：每個模組必須自行定義對外邊界的 input/output 宣告，例如查詢可接收以 `type MemberID string` 宣告的 `MemberID`。模組外部只能透過該邊界使用模組，嚴禁相依模組的內部實作。
-    1. 業務邏輯不相依溝通協定。HTTP adapter 必須把 `*http.Request` 轉成模組邊界的 input，並將模組回傳的 output 寫入 `http.ResponseWriter`。框架綁定的請求參數也必須先轉成模組邊界的 input 再呼叫模組，該進入點嚴禁包含業務邏輯。
+    1. 例如業務邏輯不相依溝通協定。HTTP adapter 必須把 `*http.Request` 轉成模組邊界的 input，並將模組回傳的 output 寫入 `http.ResponseWriter`。框架綁定的請求參數也必須先轉成模組邊界的 input 再呼叫模組，該進入點嚴禁包含業務邏輯。
     2. 邊界傳入的參數一律進行驗證，在同一模組信任範圍內，嚴禁逐層機械地重複相同驗證。
     3. 驗證只拒絕契約不允許的值；`0`、`false` 與空字串並非一律無效。
     4. 契約允許省略的值必須寫明預設值。若省略與明確傳入零值，例如 `0`、`false` 或空字串，有不同含意，input 宣告必須能區分兩者，例如 Go 的欄位宣告為 `*int` 而非 `int`，以 `nil` 表示省略。
