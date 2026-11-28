@@ -10,9 +10,9 @@ description: >-
 
 # Code Rules
 
-- Each top-level numbered item MUST start with a short title followed by a colon, then its explanation. Titles are optional for nested items.
-- MUST apply this precedence: explicit project rules, consistent conventions in existing project code, language conventions, then these rules.
 - The explanations and examples below use Go. MUST adapt them to equivalent conventions and syntax in the target language.
+- MUST apply this precedence: explicit project rules, consistent conventions in existing project code, language conventions, then these rules.
+- Each top-level numbered item MUST start with a short title followed by a colon, then its explanation. Titles are optional for nested items.
 - Refer to numbered items as *Section:Number[+Number…]*. Join numbers from the same section with `+`.
     - *Code Principles:4.1* refers to the first subitem of item 4 in that section.
     - *Code Principles:2+3* refers to items 2 and 3 in that section.
@@ -31,11 +31,11 @@ description: >-
 2. Function content: a group of steps that serves one purpose MUST be extracted into a function whose name states that purpose; extract it only when the function name can clearly carry the meaning of those lines of code combined.
 3. Function grouping: when the meaning of several functions can be gathered further under a name with higher cohesion and a clearer boundary, create a struct or a module to hold these functions of the same scope, e.g. a package or a struct used as the receiver of a `func`.
 4. Function parameters: functions that contain logic take at most 3 parameters, with constructors exempt. Function signatures MUST stay stable for the foreseeable future.
-    1. When a function has more than 3 parameters, MUST first review its responsibilities. If several calculations each have a distinct purpose and can be used independently, MUST split them into separate functions by responsibility. Use a `struct` to wrap parameters only when they belong to the same scope and should be passed together. See *Example References:1*.
+    1. When a function has more than 3 parameters, MUST first review its responsibilities. If several calculations each have a distinct purpose and can be used independently, MUST split them into separate functions by responsibility. Use a `struct` to wrap parameters only when they belong to the same scope and should be passed together.
     2. When a function is likely to keep gaining parameters in the foreseeable future, MUST wrap the parameters of the same scope in a dedicated struct, to avoid a breaking change of the signature, and MUST state for each parameter whether it is required or what its default is.
     3. Execution context and the receiver object do not count toward the limit, e.g. `context.Context` and the receiver of a `func`.
     4. A function signature constrained by a framework or library is exempt from the parameter limit and MUST still honor the external contract.
-5. Function length: keep it within 50 lines, counted from the first line of the function signature to its last line, blank lines and comments included; when it must exceed that, adjust it according to *2+3*. Mechanical content such as "a series of `if-else`" or "telling many kinds of error apart one by one" indicates a structural design problem, and MUST be avoided by designing at a higher level.
+5. Function length: keep it within 50 lines, counted from the first line of the function signature to its last line, blank lines and comments included; when it must exceed that, adjust it according to *2+3*. Mechanical content such as "a series of `if-else`" or "telling many kinds of error apart one by one" indicates a structural design problem and MUST be addressed by adjusting the design from a higher-level perspective. When branches keep growing and each has independent logic, see *Architecture Principles:5*.
 6. Constants of the same meaning: when constants in many places stand for the same meaning, MUST assign or concatenate them from one constant, so that the code states their relation.
     1. E.g. a URL path prefix: define one constant for the prefix of the API endpoints of one scope and concatenate it; MUST NOT repeat the prefix as a literal, so that changing the prefix changes one constant, and the prefix is easier to trace.
     2. Tests MUST specify the values under test in requests and expected results independently. They MUST NOT reference the production constants that define those values, so a wrong constant causes the test to fail. When multiple tests specify a value with the same meaning, MUST use a test-only constant. Write a value specified by one test as a literal. This is the only exception.
@@ -121,7 +121,9 @@ description: >-
 
 ## Example References
 
-1. Parameter count: when an existing or planned function signature has more than 3 parameters, MUST read [Parameter Count Examples](references/parameter-examples.md) before deciding how to split responsibilities or wrap parameters.
-2. Branching: when known requirements or extension points show that the branches of an `if-else` / `switch` will keep growing, and each branch corresponds to a group of independent logic, MUST read [Branching Examples](references/branching-examples.md) before deciding whether to use a dispatch table or the Strategy Pattern.
-3. Declaration comments: before writing or modifying code, MUST read [Declaration Comment Examples](references/comment-examples.md), and follow the Comment Principles and the commenting approach that the examples show.
-4. Logging: before writing or modifying log statements, MUST read [Logging Examples](references/logging-examples.md), and follow the Logging Principles and the approach that the examples show.
+- When the current task needs clarification in one of the situations below, read only the corresponding examples.
+
+1. [Parameter Count Examples](references/parameter-examples.md): when a function subject to the parameter limit takes more than 3 parameters and you need to decide how to split responsibilities or wrap parameters in a struct.
+2. [Branching Examples](references/branching-examples.md): when known requirements or extension points show that branches with independent logic will keep growing and you need to decide how to select branches or encapsulate their handling logic.
+3. [Declaration Comment Examples](references/comment-examples.md): when writing or modifying declaration comments and you need to clarify their format or how to describe contracts and preconditions.
+4. [Logging Examples](references/logging-examples.md): when adding or modifying log statements and you need to decide which fields to log, which format or level to use, or how to aggregate statistics.
